@@ -1,0 +1,48 @@
+<section class="section card grouped">
+  <h2>Basic Profile</h2>
+  <label>Name</label>
+  <input class="input" id="profile-name" placeholder="Your name" />
+  <h3>Writing Rules</h3>
+  <label><input type="checkbox" id="rule-avoid-teiru" /> Avoid ～ている</label>
+  <label><input type="checkbox" id="rule-prefer-omou" /> Prefer 思う over 考える</label>
+  <label><input type="checkbox" id="rule-avoid-kanji" /> Avoid excessive kanji compounds</label>
+</section>
+
+<section class="section card grouped">
+  <div class="row-between">
+    <h2>Episodes</h2>
+    <button class="btn primary" id="episode-add-btn" type="button">Add Episode</button>
+  </div>
+  <div id="episode-list" class="list"></div>
+  <div class="empty-state" id="episode-empty">No episodes yet. Add one to build reusable claims.</div>
+</section>
+
+<div class="modal hidden" id="episode-modal">
+  <div class="modal-backdrop" data-close-modal="true"></div>
+  <div class="modal-content card grouped">
+    <div class="row-between">
+      <h2 id="episode-modal-title">Add Episode</h2>
+      <button class="btn" type="button" data-close-modal="true">Close</button>
+    </div>
+    <div class="inline-error" id="episode-form-error"></div>
+    <input class="input" id="ep-title" placeholder="Title" />
+    <input class="input" id="ep-period" placeholder="Period" />
+    <textarea class="input" rows="2" id="ep-context" placeholder="Context"></textarea>
+    <textarea class="input" rows="2" id="ep-role" placeholder="Role"></textarea>
+    <textarea class="input" rows="2" id="ep-goal" placeholder="Goal"></textarea>
+    <textarea class="input" rows="2" id="ep-problem" placeholder="Problem"></textarea>
+    <input class="input" id="ep-action1" placeholder="Action 1" />
+    <input class="input" id="ep-action2" placeholder="Action 2" />
+    <input class="input" id="ep-action3" placeholder="Action 3" />
+    <textarea class="input" rows="2" id="ep-results" placeholder="Results (quant + qual)"></textarea>
+    <textarea class="input" rows="2" id="ep-learning" placeholder="Learning"></textarea>
+    <div class="grouped">
+      <div class="row-between">
+        <strong>Link Evidence Chunks</strong>
+        <input class="input search" id="ep-chunk-search" placeholder="Search chunks" />
+      </div>
+      <div class="picker" id="ep-chunk-picker"></div>
+    </div>
+    <button class="btn primary" id="episode-save-btn" type="button">Save Episode</button>
+  </div>
+</div>

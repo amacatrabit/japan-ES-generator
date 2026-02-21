@@ -1,0 +1,25 @@
+{
+  "banned_phrases": [
+    "頑張りました",
+    "色々な",
+    "様々な",
+    "成長できました",
+    "学びたい",
+    "研修制度が充実"
+  ],
+  "abstract_suffix_patterns": [
+    "化",
+    "的",
+    "性"
+  ],
+  "passive_stance_patterns": [
+    "御社で学びたい",
+    "研修制度",
+    "教えていただく"
+  ],
+  "style_preferences": {
+    "avoid_teiru": true,
+    "prefer_omou_over_kangaeru": true,
+    "avoid_excessive_kanji_compounds": true
+  }
+}

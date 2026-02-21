@@ -1,0 +1,32 @@
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+
+client = TestClient(app)
+
+
+def test_sources_page_renders() -> None:
+    response = client.get("/sources")
+    assert response.status_code == 200
+    assert "Sources" in response.text
+
+
+def test_profile_company_drafts_pages_render() -> None:
+    for path, expected in [
+        ("/profile", "Profile"),
+        ("/company", "Company"),
+        ("/drafts", "Draft Wizard"),
+    ]:
+        response = client.get(path)
+        assert response.status_code == 200
+        assert expected in response.text
+
+
+def test_ui_assets_served() -> None:
+    css = client.get("/ui/static/app.css")
+    js = client.get("/ui/static/app.js")
+    assert css.status_code == 200
+    assert ".large-title" in css.text
+    assert js.status_code == 200
+    assert "localStorage" in js.text
