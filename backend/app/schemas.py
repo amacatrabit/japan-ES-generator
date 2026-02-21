@@ -1,79 +1,73 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from dataclasses import dataclass, field, asdict
+from typing import Any
 
 
-class ChunkInput(BaseModel):
-    chunk_id: str
-    text: str
-    source_title: str = ""
-    loc_hint: str = ""
-    page_start: int | None = None
-    page_end: int | None = None
-    pinned: bool = False
-
-
-class EpisodeInput(BaseModel):
-    title: str = ""
-    situation: str = ""
-    task: str = ""
-    action: str = ""
-    result: str = ""
-
-
-class CompanyInput(BaseModel):
-    company_name: str = ""
-    role: str = ""
-    strengths: list[str] = Field(default=[])
-    values: list[str] = Field(default=[])
-
-
-class EvidenceRef(BaseModel):
+@dataclass
+class EvidenceRef:
     chunk_id: str
     quote: str
 
+    def model_dump(self) -> dict[str, Any]:
+        return asdict(self)
 
-class Claim(BaseModel):
+
+@dataclass
+class Claim:
     claim_id: str
     text: str
-    evidence: list[EvidenceRef] = Field(default=[])
+    evidence: list[dict[str, Any]] = field(default_factory=list)
     confidence: float = 0.5
     assumption: bool = False
     export_allowed: bool = False
 
+    def model_dump(self) -> dict[str, Any]:
+        return asdict(self)
 
-class QAFinding(BaseModel):
+
+@dataclass
+class QAFinding:
     code: str
     level: str
     message: str
     claim_id: str | None = None
 
+    def model_dump(self) -> dict[str, Any]:
+        return asdict(self)
 
-class GenerateRequest(BaseModel):
-    selected_chunks: list[ChunkInput]
-    selected_episodes: list[EpisodeInput] = Field(default=[])
-    company_context: CompanyInput | None = None
-    question_type: str
+
+@dataclass
+class GenerateRequest:
+    selected_chunks: list[dict[str, Any]]
+    selected_episodes: list[dict[str, Any]] = field(default_factory=list)
+    company_context: dict[str, Any] | None = None
+    question_type: str = "gakuchika"
     char_limit: int = 400
-    writing_rules: dict | None = None
+    writing_rules: dict[str, Any] | None = None
+
+    @classmethod
+    def model_validate(cls, payload: dict[str, Any]) -> "GenerateRequest":
+        return cls(
+            selected_chunks=payload.get("selected_chunks", []),
+            selected_episodes=payload.get("selected_episodes", []),
+            company_context=payload.get("company_context"),
+            question_type=payload.get("question_type", "gakuchika"),
+            char_limit=int(payload.get("char_limit", 400)),
+            writing_rules=payload.get("writing_rules"),
+        )
 
 
-class GenerateResponse(BaseModel):
-    outline: list[str]
-    claims: list[Claim]
-    qa_findings: list[QAFinding]
-    export_preview: str | None = None
-
-
-class ExportRequest(BaseModel):
-    claims: list[Claim]
+@dataclass
+class ExportRequest:
+    claims: list[dict[str, Any]]
     char_limit: int
     compression_level: int = 1
 
-
-class ExportResponse(BaseModel):
-    text: str
-    used_claim_ids: list[str]
-    dropped_claim_ids: list[str]
-    char_count: int
-    within_limit: bool
+    @classmethod
+    def model_validate(cls, payload: dict[str, Any]) -> "ExportRequest":
+        return cls(
+            claims=payload.get("claims", []),
+            char_limit=int(payload.get("char_limit", 400)),
+            compression_level=int(payload.get("compression_level", 1)),
+        )

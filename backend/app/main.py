@@ -1,13 +1,10 @@
-from __future__ import annotations
-
 import json
 import re
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
-from jinja2 import Environment, FileSystemLoader, select_autoescape
-
 from app.schemas import Claim, EvidenceRef, ExportRequest, GenerateRequest, QAFinding
+from app.template_engine import TemplateEngine
+from app.webstack import FastAPI, HTMLResponse, HTTPException, RedirectResponse, StaticFiles
 
 app = FastAPI(title="es-writer backend")
 
@@ -15,12 +12,17 @@ UI_ROOT = Path(__file__).resolve().parent / "ui"
 TEMPLATES_ROOT = UI_ROOT / "templates"
 STATIC_ROOT = UI_ROOT / "static"
 
-env = Environment(loader=FileSystemLoader(str(TEMPLATES_ROOT)), autoescape=select_autoescape(["html"]))
+templates = TemplateEngine(TEMPLATES_ROOT)
+app.mount("/ui/static", StaticFiles(directory=str(STATIC_ROOT)), name="ui-static")
 
 
-def _render_page(template_name: str, *, title: str, heading: str, page_key: str) -> str:
-    content = env.get_template(template_name).render()
-    return env.get_template("base.html").render(title=title, heading=heading, page_key=page_key, content=content)
+def _render_page(template_name: str, *, title: str, heading: str, page_key: str) -> HTMLResponse:
+    content = templates.render(template_name, {})
+    html = templates.render(
+        "base.html",
+        {"title": title, "heading": heading, "page_key": page_key, "content": content},
+    )
+    return HTMLResponse(html)
 
 
 def _load_default_rules() -> dict:
@@ -31,8 +33,7 @@ def _load_default_rules() -> dict:
 def _merge_rules(override: dict | None) -> dict:
     base = _load_default_rules()
     if override:
-        for key, value in override.items():
-            base[key] = value
+        base.update(override)
     return base
 
 
@@ -53,7 +54,7 @@ def _make_claims(req: GenerateRequest) -> list[Claim]:
     first_id = next(iter(chunk_map))
     first_text = chunk_map[first_id]["text"]
     episode = req.selected_episodes[0] if req.selected_episodes else {}
-    company: dict = req.company_context or {}
+    company = req.company_context or {}
 
     drafts = [
         ("c1", f"私の主な取り組みは{episode.get('title') or '継続的な改善活動'}です。", first_id, 0.82, False),
@@ -63,10 +64,9 @@ def _make_claims(req: GenerateRequest) -> list[Claim]:
 
     claims: list[Claim] = []
     for cid, text, evid_id, conf, assumption in drafts:
-        evidence = []
+        evidence: list[dict] = []
         if evid_id in chunk_map and (not assumption or "result" in first_text or "実績" in first_text):
             evidence = [EvidenceRef(chunk_id=evid_id, quote=chunk_map[evid_id]["text"][:60]).model_dump()]
-        export_allowed = len(evidence) >= 1
         claims.append(
             Claim(
                 claim_id=cid,
@@ -74,7 +74,7 @@ def _make_claims(req: GenerateRequest) -> list[Claim]:
                 evidence=evidence,
                 confidence=conf,
                 assumption=assumption,
-                export_allowed=export_allowed,
+                export_allowed=len(evidence) >= 1,
             )
         )
     return claims
@@ -86,26 +86,22 @@ def _quantification_missing(text: str) -> bool:
 
 def _run_qa(claims: list[dict], rules: dict) -> list[QAFinding]:
     findings: list[QAFinding] = []
-    banned = rules.get("banned_phrases", [])
-    abstract = rules.get("abstract_suffix_patterns", [])
-    passive = rules.get("passive_stance_patterns", [])
-
     for claim in claims:
         text = claim["text"]
         cid = claim["claim_id"]
-        for bp in banned:
+        for bp in rules.get("banned_phrases", []):
             if bp in text:
-                findings.append(QAFinding(code="BANNED_PHRASE", level="warn", message=f"禁止表現: {bp}", claim_id=cid))
-        for sfx in abstract:
+                findings.append(QAFinding("BANNED_PHRASE", "warn", f"禁止表現: {bp}", cid))
+        for sfx in rules.get("abstract_suffix_patterns", []):
             if text.endswith(sfx) or f"{sfx}を" in text:
-                findings.append(QAFinding(code="ABSTRACT_SUFFIX", level="warn", message=f"抽象語尾: {sfx}", claim_id=cid))
-        for p in passive:
+                findings.append(QAFinding("ABSTRACT_SUFFIX", "warn", f"抽象語尾: {sfx}", cid))
+        for p in rules.get("passive_stance_patterns", []):
             if p in text:
-                findings.append(QAFinding(code="PASSIVE_STANCE", level="warn", message=f"受け身姿勢: {p}", claim_id=cid))
+                findings.append(QAFinding("PASSIVE_STANCE", "warn", f"受け身姿勢: {p}", cid))
         if _quantification_missing(text):
-            findings.append(QAFinding(code="MISSING_QUANT", level="warn", message="定量表現が不足", claim_id=cid))
+            findings.append(QAFinding("MISSING_QUANT", "warn", "定量表現が不足", cid))
         if len(claim.get("evidence", [])) < 1:
-            findings.append(QAFinding(code="MISSING_EVIDENCE", level="blocker", message="根拠不足のため出力不可", claim_id=cid))
+            findings.append(QAFinding("MISSING_EVIDENCE", "blocker", "根拠不足のため出力不可", cid))
     return findings
 
 
@@ -115,8 +111,7 @@ def _compress(text: str, level: int) -> str:
         for w in ["非常に", "かなり", "しっかり", "その結果", "まず", "特に"]:
             out = out.replace(w, "")
     if level >= 2:
-        out = out.replace("ことができました", "できた").replace("取り組みました", "実行した")
-        out = out.replace("。", "")
+        out = out.replace("ことができました", "できた").replace("取り組みました", "実行した").replace("。", "")
     if level >= 3:
         out = out.replace("貢献できます", "貢献する")
     return re.sub(r"\s+", "", out).strip()
@@ -124,66 +119,46 @@ def _compress(text: str, level: int) -> str:
 
 def _export_strict(claims: list[dict], char_limit: int, compression_level: int) -> dict:
     allowed = [c for c in claims if c.get("export_allowed")]
-    ranked = sorted(allowed, key=lambda c: (c.get("assumption", False), c.get("confidence", 0.0)), reverse=False)
-    used: list[dict] = []
-    text = ""
+    ranked = sorted(allowed, key=lambda c: (c.get("assumption", False), c.get("confidence", 0.0)))
+    used, text = [], ""
     for claim in ranked:
-        compressed = _compress(claim["text"], compression_level)
-        candidate = text + compressed
-        if len(candidate) <= char_limit:
-            text = candidate
+        comp = _compress(claim["text"], compression_level)
+        if len(text + comp) <= char_limit:
+            text += comp
             used.append(claim)
-    if len(text) > char_limit:
-        text = text[:char_limit]
     used_ids = [c["claim_id"] for c in used]
-    dropped_ids = [c["claim_id"] for c in claims if c["claim_id"] not in used_ids]
     return {
         "text": text,
         "used_claim_ids": used_ids,
-        "dropped_claim_ids": dropped_ids,
+        "dropped_claim_ids": [c["claim_id"] for c in claims if c["claim_id"] not in used_ids],
         "char_count": len(text),
         "within_limit": len(text) <= char_limit,
     }
 
 
 @app.get("/")
-def root() -> tuple[str, int, dict[str, str]]:
-    return "", 302, {"Location": "/sources"}
+def root() -> RedirectResponse:
+    return RedirectResponse(url="/sources", status_code=302)
 
 
 @app.get("/sources")
-def sources_page() -> str:
+def sources_page() -> HTMLResponse:
     return _render_page("sources.html", title="ES Writer - 소스", heading="소스", page_key="sources")
 
 
 @app.get("/profile")
-def profile_page() -> str:
+def profile_page() -> HTMLResponse:
     return _render_page("profile.html", title="ES Writer - 프로필", heading="프로필", page_key="profile")
 
 
 @app.get("/company")
-def company_page() -> str:
+def company_page() -> HTMLResponse:
     return _render_page("company.html", title="ES Writer - 기업", heading="기업", page_key="company")
 
 
 @app.get("/drafts")
-def drafts_page() -> str:
+def drafts_page() -> HTMLResponse:
     return _render_page("drafts.html", title="ES Writer - 초안", heading="초안", page_key="drafts")
-
-
-@app.get("/ui/static/app.css")
-def ui_css() -> str:
-    return (STATIC_ROOT / "app.css").read_text(encoding="utf-8")
-
-
-@app.get("/ui/static/app.js")
-def ui_js() -> str:
-    return (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
-
-
-@app.get("/ui/static/store.js")
-def ui_store_js() -> str:
-    return (STATIC_ROOT / "store.js").read_text(encoding="utf-8")
 
 
 @app.get("/healthz")
@@ -196,26 +171,19 @@ def generate(payload: dict) -> dict:
     req = GenerateRequest.model_validate(payload)
     if not req.selected_chunks:
         raise HTTPException(status_code=400, detail="selected_chunks must not be empty")
-    rules = _merge_rules(req.writing_rules)
     claims = [c.model_dump() for c in _make_claims(req)]
     allowed_ids = {c["chunk_id"] for c in req.selected_chunks}
     for claim in claims:
         claim["evidence"] = [e for e in claim["evidence"] if e["chunk_id"] in allowed_ids]
         claim["export_allowed"] = len(claim["evidence"]) >= 1
-    qa = [q.model_dump() for q in _run_qa(claims, rules)]
-    return {
-        "outline": _outline_for(req.question_type),
-        "claims": claims,
-        "qa_findings": qa,
-        "export_preview": None,
-    }
+    qa = [q.model_dump() for q in _run_qa(claims, _merge_rules(req.writing_rules))]
+    return {"outline": _outline_for(req.question_type), "claims": claims, "qa_findings": qa, "export_preview": None}
 
 
 @app.post("/v1/qa")
 def qa(payload: dict) -> dict:
     claims = payload.get("claims", [])
-    rules = _merge_rules(payload.get("writing_rules"))
-    findings = [f.model_dump() for f in _run_qa(claims, rules)]
+    findings = [f.model_dump() for f in _run_qa(claims, _merge_rules(payload.get("writing_rules")))]
     return {"qa_findings": findings}
 
 
