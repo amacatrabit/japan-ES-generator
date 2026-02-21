@@ -1,13 +1,17 @@
-<section class="section card grouped">
+<section class="card grouped">
   <div class="row-between">
-    <h2 class="section-title">기업</h2>
+    <div>
+      <p class="section-label">Companies</p>
+      <h2 class="section-title">기업 목록</h2>
+    </div>
     <button class="btn primary" id="company-add-btn" type="button">기업 추가</button>
   </div>
   <div id="company-list" class="list"></div>
-  <div class="empty-state" id="company-empty">기업이 없습니다.</div>
+  <div class="empty" id="company-empty">기업이 없습니다.</div>
 </section>
 
-<section class="section card grouped" id="company-detail-section">
+<section class="card grouped" id="company-detail-section">
+  <p class="section-label">Details</p>
   <h2 class="section-title" id="company-detail-title">기업 상세</h2>
   <div class="grouped">
     <strong>연결 소스</strong>
@@ -32,10 +36,10 @@
 
 <div class="modal hidden" id="company-modal">
   <div class="modal-backdrop" data-close-company-modal="true"></div>
-  <div class="modal-content card grouped">
+  <div class="modal-content grouped">
     <div class="row-between">
       <h2 class="section-title" id="company-modal-title">기업 추가</h2>
-      <button class="btn" data-close-company-modal="true" type="button">닫기</button>
+      <button class="btn ghost" data-close-company-modal="true" type="button">닫기</button>
     </div>
     <div class="inline-error" id="company-form-error"></div>
     <input class="input" id="company-name" placeholder="기업명" />

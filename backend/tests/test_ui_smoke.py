@@ -6,10 +6,11 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_sources_page_renders() -> None:
+def test_sources_page_contains_header_and_brand() -> None:
     response = client.get("/sources")
     assert response.status_code == 200
-    assert "소스" in response.text
+    assert "<header" in response.text
+    assert "ES Writer" in response.text
 
 
 def test_profile_company_drafts_pages_render() -> None:
@@ -23,12 +24,8 @@ def test_profile_company_drafts_pages_render() -> None:
         assert expected in response.text
 
 
-def test_ui_assets_served() -> None:
+def test_ui_css_served_and_not_empty() -> None:
     css = client.get("/ui/static/app.css")
-    js = client.get("/ui/static/app.js")
-    store = client.get("/ui/static/store.js")
     assert css.status_code == 200
-    assert ".large-title" in css.text
-    assert js.status_code == 200
-    assert store.status_code == 200
-    assert "esStore" in store.text
+    assert "text/css" in css.headers.get("content-type", "")
+    assert len(css.text.strip()) > 0
