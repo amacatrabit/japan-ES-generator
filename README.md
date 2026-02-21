@@ -21,11 +21,14 @@ python -m uvicorn app.main:app --reload --port 8000
 ```
 
 ## Backend setup (offline fallback with wheelhouse)
-If network/proxy blocks package installation, use local wheels:
+If network/proxy blocks package installation, run the install commands at the repository root (where `README.md` is located):
 ```bash
 cd /path/to/japan-ES-generator
 python -m pip install --no-index --find-links=backend/wheelhouse -r backend/requirements.txt
 python -m pip install --no-index --find-links=backend/wheelhouse -r backend/requirements-dev.txt
+```
+After installation, move into `backend/` only for test/run commands:
+```bash
 cd backend
 python -m pytest -q
 python -m uvicorn app.main:app --reload --port 8000
