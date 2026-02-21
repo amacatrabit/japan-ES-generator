@@ -17,7 +17,7 @@ def test_profile_company_drafts_pages_render() -> None:
     for path, expected in [
         ("/profile", "프로필"),
         ("/company", "기업"),
-        ("/drafts", "초안 마법사"),
+        ("/drafts", "초안 생성"),
     ]:
         response = client.get(path)
         assert response.status_code == 200

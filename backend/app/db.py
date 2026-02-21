@@ -42,6 +42,34 @@ def init_db() -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS companies (
+                id TEXT PRIMARY KEY,
+                company_name TEXT NOT NULL,
+                role TEXT NOT NULL,
+                research_summary TEXT NOT NULL,
+                question_templates_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS draft_histories (
+                id TEXT PRIMARY KEY,
+                question_type TEXT NOT NULL,
+                char_limit INTEGER NOT NULL,
+                company_id TEXT,
+                draft_text TEXT NOT NULL,
+                claims_json TEXT NOT NULL,
+                qa_findings_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
 
 
 def list_sources() -> list[dict]:
@@ -142,6 +170,106 @@ def update_profile(profile_id: str, name: str, payload: dict) -> dict | None:
 def delete_profile(profile_id: str) -> bool:
     with _connect() as conn:
         cur = conn.execute("DELETE FROM profiles WHERE id = ?", (profile_id,))
+        return cur.rowcount > 0
+
+
+def list_companies() -> list[dict]:
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT id, company_name, role, research_summary, question_templates_json, created_at, updated_at FROM companies ORDER BY updated_at DESC"
+        ).fetchall()
+    out: list[dict] = []
+    for row in rows:
+        item = dict(row)
+        item["question_templates"] = json.loads(item.pop("question_templates_json"))
+        out.append(item)
+    return out
+
+
+def get_company(company_id: str) -> dict | None:
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT id, company_name, role, research_summary, question_templates_json, created_at, updated_at FROM companies WHERE id = ?",
+            (company_id,),
+        ).fetchone()
+    if not row:
+        return None
+    item = dict(row)
+    item["question_templates"] = json.loads(item.pop("question_templates_json"))
+    return item
+
+
+def create_company(company_name: str, role: str, research_summary: str = "", question_templates: list[str] | None = None) -> dict:
+    company_id = str(uuid4())
+    now = _now_iso()
+    with _connect() as conn:
+        conn.execute(
+            "INSERT INTO companies(id, company_name, role, research_summary, question_templates_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (company_id, company_name, role, research_summary, json.dumps(question_templates or [], ensure_ascii=False), now, now),
+        )
+    return get_company(company_id)  # type: ignore[return-value]
+
+
+def update_company(company_id: str, company_name: str, role: str, research_summary: str, question_templates: list[str]) -> dict | None:
+    now = _now_iso()
+    with _connect() as conn:
+        cur = conn.execute(
+            "UPDATE companies SET company_name = ?, role = ?, research_summary = ?, question_templates_json = ?, updated_at = ? WHERE id = ?",
+            (company_name, role, research_summary, json.dumps(question_templates, ensure_ascii=False), now, company_id),
+        )
+        if cur.rowcount == 0:
+            return None
+    return get_company(company_id)
+
+
+def delete_company(company_id: str) -> bool:
+    with _connect() as conn:
+        cur = conn.execute("DELETE FROM companies WHERE id = ?", (company_id,))
+        return cur.rowcount > 0
+
+
+def list_draft_histories() -> list[dict]:
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT id, question_type, char_limit, company_id, draft_text, claims_json, qa_findings_json, created_at, updated_at FROM draft_histories ORDER BY updated_at DESC"
+        ).fetchall()
+    out: list[dict] = []
+    for row in rows:
+        item = dict(row)
+        item["claims"] = json.loads(item.pop("claims_json"))
+        item["qa_findings"] = json.loads(item.pop("qa_findings_json"))
+        out.append(item)
+    return out
+
+
+def get_draft_history(history_id: str) -> dict | None:
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT id, question_type, char_limit, company_id, draft_text, claims_json, qa_findings_json, created_at, updated_at FROM draft_histories WHERE id = ?",
+            (history_id,),
+        ).fetchone()
+    if not row:
+        return None
+    item = dict(row)
+    item["claims"] = json.loads(item.pop("claims_json"))
+    item["qa_findings"] = json.loads(item.pop("qa_findings_json"))
+    return item
+
+
+def create_draft_history(question_type: str, char_limit: int, company_id: str | None, draft_text: str, claims: list, qa_findings: list) -> dict:
+    history_id = str(uuid4())
+    now = _now_iso()
+    with _connect() as conn:
+        conn.execute(
+            "INSERT INTO draft_histories(id, question_type, char_limit, company_id, draft_text, claims_json, qa_findings_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (history_id, question_type, char_limit, company_id, draft_text, json.dumps(claims, ensure_ascii=False), json.dumps(qa_findings, ensure_ascii=False), now, now),
+        )
+    return get_draft_history(history_id)  # type: ignore[return-value]
+
+
+def delete_draft_history(history_id: str) -> bool:
+    with _connect() as conn:
+        cur = conn.execute("DELETE FROM draft_histories WHERE id = ?", (history_id,))
         return cur.rowcount > 0
 
 

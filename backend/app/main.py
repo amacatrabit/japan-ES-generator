@@ -214,57 +214,17 @@ def _run_qa(claims: list[Claim], rules: dict) -> list[QAFinding]:
     for claim in claims:
         for banned_phrase in rules.get("banned_phrases", []):
             if banned_phrase in claim.text:
-                findings.append(
-                    QAFinding(
-                        code="BANNED_PHRASE",
-                        level="warn",
-                        message=f"禁止表現: {banned_phrase}",
-                        claim_id=claim.claim_id,
-                    )
-                )
-
+                findings.append(QAFinding(code="BANNED_PHRASE", level="warn", message=f"禁止表現: {banned_phrase}", claim_id=claim.claim_id))
         for suffix in rules.get("abstract_suffix_patterns", []):
             if claim.text.endswith(suffix) or f"{suffix}を" in claim.text:
-                findings.append(
-                    QAFinding(
-                        code="ABSTRACT_SUFFIX",
-                        level="warn",
-                        message=f"抽象語尾: {suffix}",
-                        claim_id=claim.claim_id,
-                    )
-                )
-
+                findings.append(QAFinding(code="ABSTRACT_SUFFIX", level="warn", message=f"抽象語尾: {suffix}", claim_id=claim.claim_id))
         for passive_pattern in rules.get("passive_stance_patterns", []):
             if passive_pattern in claim.text:
-                findings.append(
-                    QAFinding(
-                        code="PASSIVE_STANCE",
-                        level="warn",
-                        message=f"受け身姿勢: {passive_pattern}",
-                        claim_id=claim.claim_id,
-                    )
-                )
-
+                findings.append(QAFinding(code="PASSIVE_STANCE", level="warn", message=f"受け身姿勢: {passive_pattern}", claim_id=claim.claim_id))
         if _quantification_missing(claim.text):
-            findings.append(
-                QAFinding(
-                    code="MISSING_QUANT",
-                    level="warn",
-                    message="定量表現が不足",
-                    claim_id=claim.claim_id,
-                )
-            )
-
+            findings.append(QAFinding(code="MISSING_QUANT", level="warn", message="定量表現が不足", claim_id=claim.claim_id))
         if len(claim.evidence) < 1:
-            findings.append(
-                QAFinding(
-                    code="MISSING_EVIDENCE",
-                    level="blocker",
-                    message="根拠不足のため出力不可",
-                    claim_id=claim.claim_id,
-                )
-            )
-
+            findings.append(QAFinding(code="MISSING_EVIDENCE", level="blocker", message="根拠不足のため出力不可", claim_id=claim.claim_id))
     return findings
 
 
@@ -288,7 +248,6 @@ def _safe_trim(text: str, char_limit: int) -> str:
 async def _compress(text: str, char_limit: int, level: int) -> str:
     if char_limit <= 0:
         return ""
-
     prompt = (
         "次の日本語文を意味を保って簡潔に圧縮してください。"
         f"出力は必ず{char_limit}文字以内。余計な説明は禁止。\n"
@@ -296,18 +255,15 @@ async def _compress(text: str, char_limit: int, level: int) -> str:
         f"本文:{text}"
     )
     llm_result = await _call_openai_json(prompt)
-
     if isinstance(llm_result, dict) and isinstance(llm_result.get("text"), str):
         return _safe_trim(llm_result["text"], char_limit)
     if isinstance(llm_result, list) and llm_result and isinstance(llm_result[0], dict):
         maybe = llm_result[0].get("text")
         if isinstance(maybe, str):
             return _safe_trim(maybe, char_limit)
-
     fallback = text
     if level >= 2:
-        fallback = fallback.replace("することができます", "できます")
-        fallback = fallback.replace("ことができました", "できました")
+        fallback = fallback.replace("することができます", "できます").replace("ことができました", "できました")
     if level >= 3:
         fallback = fallback.replace("取り組みました", "取り組んだ")
     return _safe_trim(fallback, char_limit)
@@ -318,10 +274,7 @@ def _evidence_allows_export(claim: Claim) -> bool:
 
 
 async def _export_strict(claims: list[Claim], char_limit: int, compression_level: int) -> ExportResponse:
-    normalized_claims = [
-        claim.model_copy(update={"export_allowed": _evidence_allows_export(claim)})
-        for claim in claims
-    ]
+    normalized_claims = [claim.model_copy(update={"export_allowed": _evidence_allows_export(claim)}) for claim in claims]
     allowed_claims = [claim for claim in normalized_claims if claim.export_allowed]
     ranked = sorted(allowed_claims, key=lambda claim: (claim.assumption, -claim.confidence))
 
@@ -338,19 +291,9 @@ async def _export_strict(claims: list[Claim], char_limit: int, compression_level
 
     used_claim_ids = [claim.claim_id for claim in used]
     used_claim_id_set = set(used_claim_ids)
-    dropped_claim_ids = [
-        claim.claim_id
-        for claim in normalized_claims
-        if claim.claim_id not in used_claim_id_set
-    ]
+    dropped_claim_ids = [claim.claim_id for claim in normalized_claims if claim.claim_id not in used_claim_id_set]
 
-    return ExportResponse(
-        text=text,
-        used_claim_ids=used_claim_ids,
-        dropped_claim_ids=dropped_claim_ids,
-        char_count=len(text),
-        within_limit=len(text) <= char_limit,
-    )
+    return ExportResponse(text=text, used_claim_ids=used_claim_ids, dropped_claim_ids=dropped_claim_ids, char_count=len(text), within_limit=len(text) <= char_limit)
 
 
 def _split_chunks(text: str, max_len: int = 800) -> list[dict]:
@@ -377,6 +320,22 @@ class SourceUpsertRequest(BaseModel):
 class ProfileUpsertRequest(BaseModel):
     name: str
     payload: dict = Field(default_factory=dict)
+
+
+class CompanyUpsertRequest(BaseModel):
+    company_name: str
+    role: str = ""
+    research_summary: str = ""
+    question_templates: list[str] = Field(default_factory=list)
+
+
+class DraftHistoryCreateRequest(BaseModel):
+    question_type: str
+    char_limit: int
+    company_id: str | None = None
+    draft_text: str
+    claims: list[dict] = Field(default_factory=list)
+    qa_findings: list[dict] = Field(default_factory=list)
 
 
 class RestoreRequest(BaseModel):
@@ -417,6 +376,12 @@ def drafts_page() -> HTMLResponse:
 @app.get("/healthz")
 def healthz() -> JSONResponse:
     return JSONResponse({"ok": True})
+
+
+@app.get("/v1/llm/health")
+def llm_health() -> JSONResponse:
+    configured = bool(os.getenv("OPENAI_API_KEY", "").strip())
+    return JSONResponse({"provider": "openai", "configured": configured, "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini")})
 
 
 @app.get("/v1/sources")
@@ -520,11 +485,106 @@ def delete_profile_api(profile_id: str) -> JSONResponse:
     return JSONResponse({"ok": True})
 
 
+@app.get("/v1/companies")
+def list_companies_api() -> JSONResponse:
+    return JSONResponse(db.list_companies())
+
+
+@app.get("/v1/companies/{company_id}")
+def get_company_api(company_id: str) -> JSONResponse:
+    item = db.get_company(company_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="company not found")
+    return JSONResponse(item)
+
+
+@app.post("/v1/companies")
+def create_company_api(req: CompanyUpsertRequest) -> JSONResponse:
+    if not req.company_name.strip():
+        raise HTTPException(status_code=400, detail="company_name is required")
+    item = db.create_company(req.company_name.strip(), req.role.strip(), req.research_summary, req.question_templates)
+    return JSONResponse(item, status_code=201)
+
+
+@app.put("/v1/companies/{company_id}")
+def update_company_api(company_id: str, req: CompanyUpsertRequest) -> JSONResponse:
+    item = db.update_company(company_id, req.company_name.strip(), req.role.strip(), req.research_summary, req.question_templates)
+    if not item:
+        raise HTTPException(status_code=404, detail="company not found")
+    return JSONResponse(item)
+
+
+@app.delete("/v1/companies/{company_id}")
+def delete_company_api(company_id: str) -> JSONResponse:
+    if not db.delete_company(company_id):
+        raise HTTPException(status_code=404, detail="company not found")
+    return JSONResponse({"ok": True})
+
+
+@app.post("/v1/companies/{company_id}/research/generate")
+async def generate_company_research(company_id: str) -> JSONResponse:
+    company = db.get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="company not found")
+    sources = db.list_sources()[:5]
+    material = "\n".join([f"- {s['title']}: {s['raw_text'][:160]}" for s in sources])
+    prompt = (
+        f"企業名: {company['company_name']}\n"
+        f"職種: {company['role']}\n"
+        f"参考資料:\n{material}\n"
+        "上記をもとにES向け企業リサーチ要約を日本語で作成。"
+        "JSONで {research_summary: string, question_templates: string[]} を返してください。"
+    )
+    llm_result = await _call_openai_json(prompt)
+    summary = company.get("research_summary", "")
+    templates = company.get("question_templates", [])
+    if isinstance(llm_result, dict):
+        if isinstance(llm_result.get("research_summary"), str):
+            summary = llm_result["research_summary"]
+        if isinstance(llm_result.get("question_templates"), list):
+            templates = [str(x) for x in llm_result["question_templates"]]
+    elif not summary:
+        summary = f"{company['company_name']}向けのリサーチ要約（LLM未接続のため暫定）"
+        if not templates:
+            templates = ["当社を志望する理由を教えてください。", "入社後にどのような価値を出せますか。"]
+
+    updated = db.update_company(company_id, company["company_name"], company["role"], summary, templates)
+    return JSONResponse(updated)
+
+
+@app.get("/v1/drafts/history")
+def list_draft_history_api() -> JSONResponse:
+    return JSONResponse(db.list_draft_histories())
+
+
+@app.get("/v1/drafts/history/{history_id}")
+def get_draft_history_api(history_id: str) -> JSONResponse:
+    item = db.get_draft_history(history_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="draft history not found")
+    return JSONResponse(item)
+
+
+@app.post("/v1/drafts/history")
+def create_draft_history_api(req: DraftHistoryCreateRequest) -> JSONResponse:
+    item = db.create_draft_history(req.question_type, req.char_limit, req.company_id, req.draft_text, req.claims, req.qa_findings)
+    return JSONResponse(item, status_code=201)
+
+
+@app.delete("/v1/drafts/history/{history_id}")
+def delete_draft_history_api(history_id: str) -> JSONResponse:
+    if not db.delete_draft_history(history_id):
+        raise HTTPException(status_code=404, detail="draft history not found")
+    return JSONResponse({"ok": True})
+
+
 @app.get("/v1/backup")
 def backup_api() -> JSONResponse:
     payload = {
         "sources": db.list_sources(),
         "profiles": db.list_profiles(),
+        "companies": db.list_companies(),
+        "draft_histories": db.list_draft_histories(),
     }
     return JSONResponse(payload)
 
