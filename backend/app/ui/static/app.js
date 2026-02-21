@@ -11,25 +11,81 @@ document.addEventListener("DOMContentLoaded", () => {
   if (page === "drafts") initDraftsPage();
 });
 
+const COMPANY_KEY = "es_companies_v2";
+const DRAFT_HISTORY_KEY = "es_draft_history_v1";
+
+function loadCompanies() {
+  try {
+    const raw = localStorage.getItem(COMPANY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((c) => ({
+      id: c.id || uuid(),
+      company_name: c.company_name || "",
+      role: c.role || "",
+      company_info: c.company_info || "",
+      question_template: c.question_template || "지원 동기 및 기여 가능성을 작성하세요.",
+      char_limit: Number(c.char_limit || 400),
+      updated_at: c.updated_at || new Date().toISOString(),
+    }));
+  } catch (_e) {
+    return [];
+  }
+}
+
+function saveCompanies(companies) {
+  localStorage.setItem(COMPANY_KEY, JSON.stringify(companies));
+}
+
+function loadDraftHistory() {
+  try {
+    const raw = localStorage.getItem(DRAFT_HISTORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_e) {
+    return [];
+  }
+}
+
+function saveDraftHistory(items) {
+  localStorage.setItem(DRAFT_HISTORY_KEY, JSON.stringify(items.slice(0, 30)));
+}
+
+function uuid() {
+  if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+  return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function toast(message, isError) {
-  const el = document.getElementById("ui-toast");
-  if (!el) return;
-  el.textContent = message;
-  el.style.display = "block";
-  el.style.borderColor = isError ? "#a33" : "#2e7d32";
-  setTimeout(() => {
-    el.style.display = "none";
-  }, 2500);
+  const list = document.querySelectorAll("#ui-toast");
+  list.forEach((el) => {
+    el.textContent = message;
+    el.style.display = "block";
+    el.style.borderColor = isError ? "#a33" : "#2e7d32";
+    setTimeout(() => {
+      el.style.display = "none";
+    }, 2500);
+  });
 }
 
 async function api(path, options) {
   const res = await fetch(path, options);
+  const contentType = res.headers.get("content-type") || "";
   if (!res.ok) {
+    if (contentType.includes("application/json")) {
+      try {
+        const j = await res.json();
+        throw new Error(j.detail || JSON.stringify(j));
+      } catch (_e) {
+        throw new Error(`request failed: ${res.status}`);
+      }
+    }
     const txt = await res.text();
     throw new Error(txt || `request failed: ${res.status}`);
   }
-  const contentType = res.headers.get("content-type") || "";
-  if (contentType.includes("application/json")) return res.json();
+  if (contentType.includes("application/json")) {
+    return res.json();
+  }
   return res.text();
 }
 
@@ -51,6 +107,7 @@ function initSourcesPage() {
   const deleteBtn = document.getElementById("source-delete-btn");
   const chunksBtn = document.getElementById("source-chunks-btn");
   const chunksList = document.getElementById("source-chunks-list");
+
   if (!listEl || !emptyEl) return;
 
   let currentId = null;
@@ -74,72 +131,94 @@ function initSourcesPage() {
     });
   }
 
-  if (createBtn) createBtn.addEventListener("click", async () => {
-    try {
-      await api("/v1/sources", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: detailValue(createTitle), raw_text: detailValue(createText) }),
-      });
-      if (createTitle) createTitle.value = "";
-      if (createText) createText.value = "";
-      await loadList();
-      toast("saved", false);
-    } catch (e) { toast(`save failed: ${e.message}`, true); }
-  });
+  if (createBtn) {
+    createBtn.addEventListener("click", async () => {
+      try {
+        const title = createTitle?.value?.trim() || "";
+        const rawText = detailValue(createText);
+        await api("/v1/sources", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, raw_text: rawText }),
+        });
+        if (createTitle) createTitle.value = "";
+        if (createText) createText.value = "";
+        await loadList();
+        toast("saved", false);
+      } catch (e) {
+        toast(`save failed: ${e.message}`, true);
+      }
+    });
+  }
 
-  if (uploadBtn) uploadBtn.addEventListener("click", async () => {
-    try {
-      const file = uploadFile?.files?.[0];
-      if (!file) throw new Error("file required");
-      const fd = new FormData();
-      fd.append("file", file);
-      await api("/v1/sources/upload", { method: "POST", body: fd });
-      await loadList();
-      toast("uploaded", false);
-    } catch (e) { toast(`upload failed: ${e.message}`, true); }
-  });
+  if (uploadBtn) {
+    uploadBtn.addEventListener("click", async () => {
+      try {
+        const file = uploadFile?.files?.[0];
+        if (!file) throw new Error("file required");
+        const fd = new FormData();
+        fd.append("file", file);
+        await api("/v1/sources/upload", { method: "POST", body: fd });
+        await loadList();
+        toast("uploaded", false);
+      } catch (e) {
+        toast(`upload failed: ${e.message}`, true);
+      }
+    });
+  }
 
-  if (updateBtn) updateBtn.addEventListener("click", async () => {
-    try {
-      if (!currentId) throw new Error("select a source first");
-      await api(`/v1/sources/${currentId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: detailValue(detailTitle), raw_text: detailValue(detailText) }),
-      });
-      await loadList();
-      toast("updated", false);
-    } catch (e) { toast(`update failed: ${e.message}`, true); }
-  });
+  if (updateBtn) {
+    updateBtn.addEventListener("click", async () => {
+      try {
+        if (!currentId) throw new Error("select a source first");
+        await api(`/v1/sources/${currentId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: detailValue(detailTitle), raw_text: detailValue(detailText) }),
+        });
+        await loadList();
+        toast("updated", false);
+      } catch (e) {
+        toast(`update failed: ${e.message}`, true);
+      }
+    });
+  }
 
-  if (deleteBtn) deleteBtn.addEventListener("click", async () => {
-    try {
-      if (!currentId) throw new Error("select a source first");
-      await api(`/v1/sources/${currentId}`, { method: "DELETE" });
-      currentId = null;
-      if (detailTitle) detailTitle.value = "";
-      if (detailText) detailText.value = "";
-      if (chunksList) chunksList.innerHTML = "";
-      await loadList();
-      toast("deleted", false);
-    } catch (e) { toast(`delete failed: ${e.message}`, true); }
-  });
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", async () => {
+      try {
+        if (!currentId) throw new Error("select a source first");
+        await api(`/v1/sources/${currentId}`, { method: "DELETE" });
+        currentId = null;
+        if (detailTitle) detailTitle.value = "";
+        if (detailText) detailText.value = "";
+        if (chunksList) chunksList.innerHTML = "";
+        await loadList();
+        toast("deleted", false);
+      } catch (e) {
+        toast(`delete failed: ${e.message}`, true);
+      }
+    });
+  }
 
-  if (chunksBtn) chunksBtn.addEventListener("click", async () => {
-    try {
-      if (!currentId) throw new Error("select a source first");
-      const chunks = await api(`/v1/sources/${currentId}/chunks`, { method: "POST" });
-      if (!chunksList) return;
-      chunksList.innerHTML = "";
-      chunks.forEach((chunk) => {
-        const item = document.createElement("div");
-        item.className = "card";
-        item.textContent = `${chunk.chunk_id}: ${chunk.text}`;
-        chunksList.appendChild(item);
-      });
-    } catch (e) { toast(`chunk failed: ${e.message}`, true); }
-  });
+  if (chunksBtn) {
+    chunksBtn.addEventListener("click", async () => {
+      try {
+        if (!currentId) throw new Error("select a source first");
+        const chunks = await api(`/v1/sources/${currentId}/chunks`, { method: "POST" });
+        if (!chunksList) return;
+        chunksList.innerHTML = "";
+        chunks.forEach((chunk) => {
+          const item = document.createElement("div");
+          item.className = "card";
+          item.textContent = `${chunk.chunk_id}: ${chunk.text}`;
+          chunksList.appendChild(item);
+        });
+      } catch (e) {
+        toast(`chunk failed: ${e.message}`, true);
+      }
+    });
+  }
 
   loadList().catch((e) => toast(`load failed: ${e.message}`, true));
 }
@@ -160,18 +239,30 @@ function initProfilePage() {
     learning: document.getElementById("ep-learning"),
   };
   if (!listEl || !emptyEl) return;
+
   let currentId = null;
 
-  const payloadFromForm = () => ({ episode: {
-    title: detailValue(fields.title), situation: detailValue(fields.situation), task: detailValue(fields.task),
-    action: detailValue(fields.action), result: detailValue(fields.result), learning: detailValue(fields.learning),
-  }});
+  function payloadFromForm() {
+    return {
+      episode: {
+        title: detailValue(fields.title),
+        situation: detailValue(fields.situation),
+        task: detailValue(fields.task),
+        action: detailValue(fields.action),
+        result: detailValue(fields.result),
+        learning: detailValue(fields.learning),
+      },
+    };
+  }
 
-  const fillForm = (profile) => {
+  function fillForm(profile) {
     if (nameEl) nameEl.value = profile.name || "";
     const ep = profile?.payload?.episode || {};
-    Object.keys(fields).forEach((key) => { if (fields[key]) fields[key].value = ep[key] || ""; });
-  };
+    Object.keys(fields).forEach((key) => {
+      const el = fields[key];
+      if (el) el.value = ep[key] || "";
+    });
+  }
 
   async function loadProfiles() {
     const items = await api("/v1/profiles");
@@ -191,214 +282,441 @@ function initProfilePage() {
     });
   }
 
-  if (saveBtn) saveBtn.addEventListener("click", async () => {
-    try {
-      await api("/v1/profiles", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: detailValue(nameEl), payload: payloadFromForm() }),
-      });
-      await loadProfiles();
-      toast("profile saved", false);
-    } catch (e) { toast(`save failed: ${e.message}`, true); }
-  });
+  if (saveBtn) {
+    saveBtn.addEventListener("click", async () => {
+      try {
+        await api("/v1/profiles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: detailValue(nameEl), payload: payloadFromForm() }),
+        });
+        await loadProfiles();
+        toast("profile saved", false);
+      } catch (e) {
+        toast(`save failed: ${e.message}`, true);
+      }
+    });
+  }
 
-  if (updateBtn) updateBtn.addEventListener("click", async () => {
-    try {
-      if (!currentId) throw new Error("select a profile first");
-      await api(`/v1/profiles/${currentId}`, {
-        method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: detailValue(nameEl), payload: payloadFromForm() }),
-      });
-      await loadProfiles();
-      toast("profile updated", false);
-    } catch (e) { toast(`update failed: ${e.message}`, true); }
-  });
+  if (updateBtn) {
+    updateBtn.addEventListener("click", async () => {
+      try {
+        if (!currentId) throw new Error("select a profile first");
+        await api(`/v1/profiles/${currentId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: detailValue(nameEl), payload: payloadFromForm() }),
+        });
+        await loadProfiles();
+        toast("profile updated", false);
+      } catch (e) {
+        toast(`update failed: ${e.message}`, true);
+      }
+    });
+  }
 
-  if (deleteBtn) deleteBtn.addEventListener("click", async () => {
-    try {
-      if (!currentId) throw new Error("select a profile first");
-      await api(`/v1/profiles/${currentId}`, { method: "DELETE" });
-      currentId = null;
-      if (nameEl) nameEl.value = "";
-      Object.values(fields).forEach((el) => { if (el) el.value = ""; });
-      await loadProfiles();
-      toast("profile deleted", false);
-    } catch (e) { toast(`delete failed: ${e.message}`, true); }
-  });
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", async () => {
+      try {
+        if (!currentId) throw new Error("select a profile first");
+        await api(`/v1/profiles/${currentId}`, { method: "DELETE" });
+        currentId = null;
+        if (nameEl) nameEl.value = "";
+        Object.values(fields).forEach((el) => {
+          if (el) el.value = "";
+        });
+        await loadProfiles();
+        toast("profile deleted", false);
+      } catch (e) {
+        toast(`delete failed: ${e.message}`, true);
+      }
+    });
+  }
 
   loadProfiles().catch((e) => toast(`load failed: ${e.message}`, true));
 }
 
 function initCompanyPage() {
-  const nameEl = document.getElementById("company-name-input");
-  const roleEl = document.getElementById("company-role-input");
-  const summaryEl = document.getElementById("company-research-input");
-  const questionsEl = document.getElementById("company-questions-input");
+  const nameEl = document.getElementById("company-name");
+  const roleEl = document.getElementById("company-role");
+  const infoEl = document.getElementById("company-info");
+  const qTemplateEl = document.getElementById("company-question-template");
+  const charLimitEl = document.getElementById("company-char-limit");
+  const researchBtn = document.getElementById("company-research-btn");
   const saveBtn = document.getElementById("company-save-btn");
-  const genBtn = document.getElementById("company-generate-btn");
-  const deleteBtn = document.getElementById("company-delete-btn");
+
   const listEl = document.getElementById("company-list");
-  const emptyEl = document.getElementById("company-list-empty");
+  const emptyEl = document.getElementById("company-empty");
+  const dName = document.getElementById("company-detail-name");
+  const dRole = document.getElementById("company-detail-role");
+  const dInfo = document.getElementById("company-detail-info");
+  const dQTemplate = document.getElementById("company-detail-question-template");
+  const dCharLimit = document.getElementById("company-detail-char-limit");
+  const updateBtn = document.getElementById("company-update-btn");
+  const deleteBtn = document.getElementById("company-delete-btn");
+
   if (!listEl || !emptyEl) return;
+
   let currentId = null;
 
-  const parseQuestions = () => detailValue(questionsEl).split("\n").map((x) => x.trim()).filter(Boolean);
-  const fill = (c) => {
-    if (nameEl) nameEl.value = c.company_name || "";
-    if (roleEl) roleEl.value = c.role || "";
-    if (summaryEl) summaryEl.value = c.research_summary || "";
-    if (questionsEl) questionsEl.value = (c.question_templates || []).join("\n");
-  };
-
-  async function loadCompanies() {
-    const items = await api("/v1/companies");
+  function render() {
+    const items = loadCompanies();
     listEl.innerHTML = "";
     emptyEl.style.display = items.length ? "none" : "block";
     items.forEach((item) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "btn";
-      btn.textContent = `${item.company_name} / ${item.role}`;
-      btn.addEventListener("click", async () => {
-        const full = await api(`/v1/companies/${item.id}`);
+      btn.textContent = `${item.company_name} / ${item.role || "직무 미지정"}`;
+      btn.addEventListener("click", () => {
         currentId = item.id;
-        fill(full);
+        if (dName) dName.value = item.company_name || "";
+        if (dRole) dRole.value = item.role || "";
+        if (dInfo) dInfo.value = item.company_info || "";
+        if (dQTemplate) dQTemplate.value = item.question_template || "";
+        if (dCharLimit) dCharLimit.value = String(item.char_limit || 400);
       });
       listEl.appendChild(btn);
     });
   }
 
-  if (saveBtn) saveBtn.addEventListener("click", async () => {
-    try {
-      const payload = {
-        company_name: detailValue(nameEl), role: detailValue(roleEl),
-        research_summary: detailValue(summaryEl), question_templates: parseQuestions(),
-      };
-      if (currentId) {
-        await api(`/v1/companies/${currentId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      } else {
-        const created = await api("/v1/companies", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        currentId = created.id;
+  if (researchBtn) {
+    researchBtn.addEventListener("click", async () => {
+      try {
+        const companyName = detailValue(nameEl);
+        if (!companyName) throw new Error("기업명을 먼저 입력하세요");
+        researchBtn.disabled = true;
+        researchBtn.textContent = "Researching...";
+        const result = await api("/v1/company/research", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ company_name: companyName }),
+        });
+        if (infoEl) infoEl.value = result.company_info || "";
+        if (qTemplateEl) qTemplateEl.value = result.question_template || "";
+        if (charLimitEl) charLimitEl.value = String(result.char_limit || 400);
+        toast("research complete", false);
+      } catch (e) {
+        toast(`research failed: ${e.message}`, true);
+      } finally {
+        researchBtn.disabled = false;
+        researchBtn.textContent = "AI Research";
       }
-      await loadCompanies();
+    });
+  }
+
+  if (saveBtn) {
+    saveBtn.addEventListener("click", () => {
+      const companyName = detailValue(nameEl);
+      if (!companyName) {
+        toast("기업명은 필수입니다", true);
+        return;
+      }
+      const items = loadCompanies();
+      items.push({
+        id: uuid(),
+        company_name: companyName,
+        role: detailValue(roleEl),
+        company_info: detailValue(infoEl),
+        question_template: detailValue(qTemplateEl) || "지원 동기 및 기여 가능성을 작성하세요.",
+        char_limit: Number(detailValue(charLimitEl) || "400"),
+        updated_at: new Date().toISOString(),
+      });
+      saveCompanies(items);
+      if (nameEl) nameEl.value = "";
+      if (roleEl) roleEl.value = "";
+      if (infoEl) infoEl.value = "";
+      if (qTemplateEl) qTemplateEl.value = "";
+      if (charLimitEl) charLimitEl.value = "400";
+      render();
       toast("company saved", false);
-    } catch (e) { toast(`save failed: ${e.message}`, true); }
-  });
+    });
+  }
 
-  if (genBtn) genBtn.addEventListener("click", async () => {
-    try {
-      if (!currentId) throw new Error("select/save company first");
-      const updated = await api(`/v1/companies/${currentId}/research/generate`, { method: "POST" });
-      fill(updated);
-      await loadCompanies();
-      toast("research generated", false);
-    } catch (e) { toast(`generate failed: ${e.message}`, true); }
-  });
+  if (updateBtn) {
+    updateBtn.addEventListener("click", () => {
+      if (!currentId) {
+        toast("기업을 먼저 선택하세요", true);
+        return;
+      }
+      const items = loadCompanies().map((item) => (item.id === currentId
+        ? {
+            ...item,
+            company_name: detailValue(dName),
+            role: detailValue(dRole),
+            company_info: detailValue(dInfo),
+            question_template: detailValue(dQTemplate),
+            char_limit: Number(detailValue(dCharLimit) || "400"),
+            updated_at: new Date().toISOString(),
+          }
+        : item));
+      saveCompanies(items);
+      render();
+      toast("company updated", false);
+    });
+  }
 
-  if (deleteBtn) deleteBtn.addEventListener("click", async () => {
-    try {
-      if (!currentId) throw new Error("select company first");
-      await api(`/v1/companies/${currentId}`, { method: "DELETE" });
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", () => {
+      if (!currentId) {
+        toast("기업을 먼저 선택하세요", true);
+        return;
+      }
+      const items = loadCompanies().filter((item) => item.id !== currentId);
+      saveCompanies(items);
       currentId = null;
-      [nameEl, roleEl, summaryEl, questionsEl].forEach((el) => { if (el) el.value = ""; });
-      await loadCompanies();
+      if (dName) dName.value = "";
+      if (dRole) dRole.value = "";
+      if (dInfo) dInfo.value = "";
+      if (dQTemplate) dQTemplate.value = "";
+      if (dCharLimit) dCharLimit.value = "400";
+      render();
       toast("company deleted", false);
-    } catch (e) { toast(`delete failed: ${e.message}`, true); }
-  });
+    });
+  }
 
-  loadCompanies().catch((e) => toast(`load failed: ${e.message}`, true));
+  render();
 }
 
 function initDraftsPage() {
-  const questionTypeEl = document.getElementById("draft-question-type");
-  const charLimitEl = document.getElementById("draft-char-limit");
-  const companySelectEl = document.getElementById("draft-company-select");
+  const companySelect = document.getElementById("draft-company-select");
+  const profileSelect = document.getElementById("draft-profile-select");
+  const sourcePicker = document.getElementById("draft-source-picker");
+  const questionType = document.getElementById("draft-question-type");
+  const charLimit = document.getElementById("draft-char-limit");
   const generateBtn = document.getElementById("draft-generate-btn");
-  const previewEl = document.getElementById("draft-preview");
-  const saveHistoryBtn = document.getElementById("draft-save-history-btn");
-  const historyListEl = document.getElementById("draft-history-list");
-  const historyEmptyEl = document.getElementById("draft-history-empty");
-  if (!previewEl || !historyListEl || !historyEmptyEl) return;
+  const preview = document.getElementById("draft-preview");
+  const charCount = document.getElementById("draft-char-count");
+  const qaPanel = document.getElementById("draft-qa-panel");
+  const err = document.getElementById("draft-generate-error");
+  const historySelect = document.getElementById("draft-history-select");
+  const historyRefreshBtn = document.getElementById("draft-history-refresh");
+  const historyClearBtn = document.getElementById("draft-history-clear");
 
-  let lastGenerated = null;
+  const openExport = document.getElementById("draft-open-export");
+  const exportModal = document.getElementById("export-modal");
+  const exportRunBtn = document.getElementById("export-run-btn");
+  const exportOutput = document.getElementById("export-output");
+  const exportLevel = document.getElementById("export-compression-level");
 
-  async function loadCompaniesForSelect() {
-    if (!companySelectEl) return;
-    const companies = await api("/v1/companies");
-    companySelectEl.innerHTML = "<option value=''>기업 선택(선택)</option>";
+  if (!companySelect || !profileSelect || !sourcePicker || !generateBtn || !preview) return;
+
+  let lastClaims = [];
+
+  function renderHistory() {
+    if (!historySelect) return;
+    const items = loadDraftHistory();
+    historySelect.innerHTML = "";
+    const first = document.createElement("option");
+    first.value = "";
+    first.textContent = "히스토리 선택";
+    historySelect.appendChild(first);
+    items.forEach((item) => {
+      const opt = document.createElement("option");
+      opt.value = item.id;
+      opt.textContent = `${item.company_name} / ${item.created_at}`;
+      historySelect.appendChild(opt);
+    });
+  }
+
+  async function loadSelectors() {
+    const companies = loadCompanies();
+    companySelect.innerHTML = "";
     companies.forEach((c) => {
       const opt = document.createElement("option");
       opt.value = c.id;
       opt.textContent = c.company_name;
-      companySelectEl.appendChild(opt);
+      companySelect.appendChild(opt);
+    });
+
+    const profiles = await api("/v1/profiles");
+    profileSelect.innerHTML = "";
+    profiles.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = p.name;
+      profileSelect.appendChild(opt);
+    });
+
+    const sources = await api("/v1/sources");
+    sourcePicker.innerHTML = "";
+    sources.forEach((s) => {
+      const label = document.createElement("label");
+      label.className = "row";
+      label.innerHTML = `<input type="checkbox" value="${s.id}" checked /> <span>${s.title}</span>`;
+      sourcePicker.appendChild(label);
+    });
+
+    renderHistory();
+  }
+
+  async function loadSelectedChunks() {
+    const checks = sourcePicker.querySelectorAll("input[type='checkbox']:checked");
+    const ids = Array.from(checks).map((c) => c.value);
+    const chunks = [];
+    for (const id of ids) {
+      const detail = await api(`/v1/sources/${id}`);
+      chunks.push({
+        chunk_id: `src:${id}:chunk:1`,
+        text: detail.raw_text,
+        source_title: detail.title,
+        loc_hint: "saved",
+        page_start: 0,
+        page_end: 0,
+        pinned: true,
+      });
+    }
+    return chunks;
+  }
+
+
+  if (historyRefreshBtn) {
+    historyRefreshBtn.addEventListener("click", () => {
+      renderHistory();
+      toast("history refreshed", false);
     });
   }
 
-  async function loadHistory() {
-    const items = await api("/v1/drafts/history");
-    historyListEl.innerHTML = "";
-    historyEmptyEl.style.display = items.length ? "none" : "block";
-    items.forEach((item) => {
-      const row = document.createElement("div");
-      row.className = "row";
-      const openBtn = document.createElement("button");
-      openBtn.className = "btn";
-      openBtn.textContent = `${item.question_type} / ${item.char_limit}`;
-      openBtn.addEventListener("click", async () => {
-        const full = await api(`/v1/drafts/history/${item.id}`);
-        previewEl.textContent = full.draft_text || "";
-      });
-      const delBtn = document.createElement("button");
-      delBtn.className = "btn";
-      delBtn.textContent = "Delete";
-      delBtn.addEventListener("click", async () => {
-        await api(`/v1/drafts/history/${item.id}`, { method: "DELETE" });
-        await loadHistory();
-      });
-      row.appendChild(openBtn);
-      row.appendChild(delBtn);
-      historyListEl.appendChild(row);
+  if (historyClearBtn) {
+    historyClearBtn.addEventListener("click", () => {
+      localStorage.removeItem(DRAFT_HISTORY_KEY);
+      renderHistory();
+      toast("history cleared", false);
     });
   }
 
-  if (generateBtn) generateBtn.addEventListener("click", async () => {
-    try {
-      const sources = await api("/v1/sources");
-      if (!sources.length) throw new Error("at least one source required");
-      const first = await api(`/v1/sources/${sources[0].id}`);
-      const payload = {
-        selected_chunks: [{ chunk_id: `s-${first.id}`, text: first.raw_text, source_title: first.title, loc_hint: "db", page_start: 0, page_end: 0, pinned: true }],
-        selected_episodes: [{ title: "保存データから生成", action: "根拠に基づいて要約" }],
-        company_context: companySelectEl && companySelectEl.value ? { company_name: companySelectEl.options[companySelectEl.selectedIndex].text } : null,
-        question_type: detailValue(questionTypeEl) || "gakuchika",
-        char_limit: Number(detailValue(charLimitEl) || "400"),
-        writing_rules: null,
-      };
-      const generated = await api("/v1/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const text = (generated.claims || []).map((c) => c.text).join(" ");
-      previewEl.textContent = text || "(empty)";
-      lastGenerated = {
-        question_type: payload.question_type,
-        char_limit: payload.char_limit,
-        company_id: companySelectEl ? companySelectEl.value || null : null,
-        draft_text: text,
-        claims: generated.claims || [],
-        qa_findings: generated.qa_findings || [],
-      };
-      toast("draft generated", false);
-    } catch (e) { toast(`generate failed: ${e.message}`, true); }
-  });
+  if (historySelect) {
+    historySelect.addEventListener("change", () => {
+      const id = historySelect.value;
+      const hit = loadDraftHistory().find((d) => d.id === id);
+      if (!hit) return;
+      lastClaims = hit.claims || [];
+      preview.textContent = hit.text || "";
+      if (charCount) charCount.textContent = `${(hit.text || "").length} 자`;
+      if (qaPanel) {
+        qaPanel.innerHTML = "";
+        (hit.qa_findings || []).forEach((f) => {
+          const item = document.createElement("div");
+          item.className = `card ${f.level === "blocker" ? "strict" : ""}`;
+          item.textContent = `[${f.level}] ${f.message}`;
+          qaPanel.appendChild(item);
+        });
+      }
+    });
+  }
 
-  if (saveHistoryBtn) saveHistoryBtn.addEventListener("click", async () => {
-    try {
-      if (!lastGenerated) throw new Error("generate first");
-      await api("/v1/drafts/history", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(lastGenerated),
-      });
-      await loadHistory();
-      toast("history saved", false);
-    } catch (e) { toast(`save failed: ${e.message}`, true); }
-  });
+  if (generateBtn) {
+    generateBtn.addEventListener("click", async () => {
+      try {
+        if (err) err.textContent = "";
+        if (!companySelect.value) throw new Error("기업을 먼저 추가/선택하세요");
+        if (!profileSelect.value) throw new Error("프로필을 먼저 추가/선택하세요");
+        generateBtn.disabled = true;
+        generateBtn.textContent = "Generating...";
+        const chunks = await loadSelectedChunks();
+        if (!chunks.length) throw new Error("소스를 하나 이상 선택하세요");
 
-  Promise.all([loadCompaniesForSelect(), loadHistory()]).catch((e) => toast(`load failed: ${e.message}`, true));
+        const profile = await api(`/v1/profiles/${profileSelect.value}`);
+        const selectedCompany = loadCompanies().find((c) => c.id === companySelect.value);
+        if (!selectedCompany) throw new Error("기업을 먼저 추가/선택하세요");
+        if (selectedCompany?.char_limit && charLimit) charLimit.value = String(selectedCompany.char_limit);
+
+        const payload = {
+          selected_chunks: chunks,
+          selected_episodes: [
+            {
+              title: profile?.payload?.episode?.title || "",
+              action: profile?.payload?.episode?.action || "",
+              results_qual: profile?.payload?.episode?.result || "",
+              learning: profile?.payload?.episode?.learning || "",
+            },
+          ],
+          company_context: {
+            company_name: selectedCompany?.company_name || "貴社",
+            role: selectedCompany?.role || "",
+            key_phrases: [],
+            question_set: [],
+          },
+          question_type: detailValue(questionType) || "gakuchika",
+          char_limit: Number(detailValue(charLimit) || "400"),
+          writing_rules: null,
+        };
+
+        const result = await api("/v1/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        lastClaims = result.claims || [];
+        const text = (lastClaims || []).map((c) => c.text).join(" ");
+        preview.textContent = text || "생성된 초안이 없습니다.";
+        if (charCount) charCount.textContent = `${text.length} 자`;
+
+        if (qaPanel) {
+          qaPanel.innerHTML = "";
+          (result.qa_findings || []).forEach((f) => {
+            const item = document.createElement("div");
+            item.className = `card ${f.level === "blocker" ? "strict" : ""}`;
+            item.textContent = `[${f.level}] ${f.message}`;
+            qaPanel.appendChild(item);
+          });
+        }
+
+        const history = loadDraftHistory();
+        history.unshift({
+          id: uuid(),
+          created_at: new Date().toLocaleString(),
+          company_name: selectedCompany?.company_name || "貴社",
+          question_type: payload.question_type,
+          text,
+          claims: lastClaims,
+          qa_findings: result.qa_findings || [],
+        });
+        saveDraftHistory(history);
+        renderHistory();
+
+        toast("draft generated", false);
+      } catch (e) {
+        if (err) err.textContent = e.message;
+        toast(`generate failed: ${e.message}`, true);
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.textContent = "초안 생성";
+      }
+    });
+  }
+
+  if (openExport && exportModal) {
+    openExport.addEventListener("click", () => exportModal.classList.remove("hidden"));
+    exportModal.querySelectorAll("[data-close-export='true']").forEach((el) => {
+      el.addEventListener("click", () => exportModal.classList.add("hidden"));
+    });
+  }
+
+  if (exportRunBtn) {
+    exportRunBtn.addEventListener("click", async () => {
+      try {
+        if (!lastClaims.length) throw new Error("먼저 초안을 생성하세요");
+        const payload = {
+          claims: lastClaims,
+          char_limit: Number(detailValue(charLimit) || "400"),
+          compression_level: Number(detailValue(exportLevel) || "1"),
+        };
+        const result = await api("/v1/export", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (exportOutput) {
+          exportOutput.textContent = `${result.text}\n\nused: ${result.used_claim_ids.join(", ")}`;
+        }
+        toast("export complete", false);
+      } catch (e) {
+        toast(`export failed: ${e.message}`, true);
+      }
+    });
+  }
+
+  loadSelectors().catch((e) => toast(`load failed: ${e.message}`, true));
 }
