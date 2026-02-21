@@ -2,9 +2,12 @@ import json
 import re
 from pathlib import Path
 
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.staticfiles import StaticFiles
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+
 from app.schemas import Claim, EvidenceRef, ExportRequest, GenerateRequest, QAFinding
-from app.template_engine import TemplateEngine
-from app.webstack import FastAPI, HTMLResponse, HTTPException, RedirectResponse, StaticFiles
 
 app = FastAPI(title="es-writer backend")
 
@@ -12,17 +15,23 @@ UI_ROOT = Path(__file__).resolve().parent / "ui"
 TEMPLATES_ROOT = UI_ROOT / "templates"
 STATIC_ROOT = UI_ROOT / "static"
 
-templates = TemplateEngine(TEMPLATES_ROOT)
+jinja_env = Environment(
+    loader=FileSystemLoader(str(TEMPLATES_ROOT)),
+    autoescape=select_autoescape(["html", "xml"]),
+)
+
 app.mount("/ui/static", StaticFiles(directory=str(STATIC_ROOT)), name="ui-static")
 
 
 def _render_page(template_name: str, *, title: str, heading: str, page_key: str) -> HTMLResponse:
-    content = templates.render(template_name, {})
-    html = templates.render(
-        "base.html",
-        {"title": title, "heading": heading, "page_key": page_key, "content": content},
+    content = jinja_env.get_template(template_name).render()
+    html = jinja_env.get_template("base.html").render(
+        title=title,
+        heading=heading,
+        page_key=page_key,
+        content=content,
     )
-    return HTMLResponse(html)
+    return HTMLResponse(content=html)
 
 
 def _load_default_rules() -> dict:
@@ -141,6 +150,11 @@ def root() -> RedirectResponse:
     return RedirectResponse(url="/sources", status_code=302)
 
 
+@app.get("/favicon.ico")
+def favicon() -> Response:
+    return Response(status_code=204)
+
+
 @app.get("/sources")
 def sources_page() -> HTMLResponse:
     return _render_page("sources.html", title="ES Writer - 소스", heading="소스", page_key="sources")
@@ -162,8 +176,8 @@ def drafts_page() -> HTMLResponse:
 
 
 @app.get("/healthz")
-def healthz() -> dict[str, bool]:
-    return {"ok": True}
+def healthz() -> JSONResponse:
+    return JSONResponse({"ok": True})
 
 
 @app.post("/v1/generate")
