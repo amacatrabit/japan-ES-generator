@@ -16,6 +16,7 @@
       chunkPurposeTags: {},
       episodes: [],
       companies: [],
+      drafts: [],
     };
   }
 
