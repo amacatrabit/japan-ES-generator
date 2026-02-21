@@ -30,7 +30,6 @@ class EpisodeInput(BaseModel):
 
 class CompanyInput(BaseModel):
     company_name: str = ""
-    name: str = ""
     role: str = ""
     key_phrases: list[str] = Field(default_factory=list)
     question_set: list[dict[str, Any]] = Field(default_factory=list)
