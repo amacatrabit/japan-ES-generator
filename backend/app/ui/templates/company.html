@@ -1,49 +1,36 @@
 <section class="card grouped">
-  <div class="row-between">
-    <div>
-      <p class="section-label">Companies</p>
-      <h2 class="section-title">기업 목록</h2>
-    </div>
-    <button class="btn primary" id="company-add-btn" type="button">기업 추가</button>
+  <p class="section-label">Company Input</p>
+  <h2 class="section-title">기업 추가</h2>
+  <input class="input" id="company-name" placeholder="기업명" />
+  <input class="input" id="company-role" placeholder="직무" />
+  <textarea class="input" rows="4" id="company-info" placeholder="기업/인재상 메모"></textarea>
+  <textarea class="input" rows="2" id="company-question-template" placeholder="질문 템플릿"></textarea>
+  <input class="input" id="company-char-limit" type="number" min="100" max="1200" value="400" />
+  <div class="row">
+    <button class="btn" id="company-research-btn" type="button">AI Research</button>
+    <button class="btn primary" id="company-save-btn" type="button">Save</button>
   </div>
+</section>
+
+<section class="card grouped">
+  <p class="section-label">Saved Companies</p>
+  <h2 class="section-title">기업 목록</h2>
   <div id="company-list" class="list"></div>
-  <div class="empty" id="company-empty">기업이 없습니다.</div>
+  <div class="empty" id="company-empty">저장된 기업이 없습니다.</div>
 </section>
 
-<section class="card grouped" id="company-detail-section">
-  <p class="section-label">Details</p>
-  <h2 class="section-title" id="company-detail-title">기업 상세</h2>
-  <div class="grouped">
-    <strong>연결 소스</strong>
-    <div id="company-source-links" class="list"></div>
-  </div>
-  <div class="grouped">
-    <strong>핵심 키워드</strong>
-    <div class="row">
-      <input class="input" id="company-phrase-input" placeholder="키워드" />
-      <button class="btn" id="company-phrase-add" type="button">추가</button>
-    </div>
-    <div id="company-phrase-list" class="chips"></div>
-  </div>
-  <div class="grouped">
-    <div class="row-between">
-      <strong>질문 세트</strong>
-      <button class="btn" id="company-question-add" type="button">질문 추가</button>
-    </div>
-    <div id="company-question-list" class="list"></div>
+<section class="card grouped">
+  <p class="section-label">Detail</p>
+  <h2 class="section-title">기업 상세 편집</h2>
+  <input class="input" id="company-detail-name" placeholder="기업명" />
+  <input class="input" id="company-detail-role" placeholder="직무" />
+  <textarea class="input" rows="4" id="company-detail-info" placeholder="기업/인재상 메모"></textarea>
+  <textarea class="input" rows="2" id="company-detail-question-template" placeholder="질문 템플릿"></textarea>
+  <input class="input" id="company-detail-char-limit" type="number" min="100" max="1200" value="400" />
+  <div class="row">
+    <button class="btn primary" id="company-update-btn" type="button">Save Changes</button>
+    <button class="btn" id="company-delete-btn" type="button">Delete</button>
   </div>
 </section>
 
-<div class="modal hidden" id="company-modal">
-  <div class="modal-backdrop" data-close-company-modal="true"></div>
-  <div class="modal-content grouped">
-    <div class="row-between">
-      <h2 class="section-title" id="company-modal-title">기업 추가</h2>
-      <button class="btn ghost" data-close-company-modal="true" type="button">닫기</button>
-    </div>
-    <div class="inline-error" id="company-form-error"></div>
-    <input class="input" id="company-name" placeholder="기업명" />
-    <input class="input" id="company-role" placeholder="직무" />
-    <button class="btn primary" id="company-save-btn" type="button">저장</button>
-  </div>
-</div>
+<div class="card" id="ui-toast" style="display:none;"></div>

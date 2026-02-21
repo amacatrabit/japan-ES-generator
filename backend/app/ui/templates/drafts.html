@@ -1,84 +1,45 @@
 <section class="card grouped" id="draft-wizard">
   <p class="section-label">Wizard</p>
   <h2 class="section-title">초안 마법사</h2>
-  <div class="stepper" role="tablist" aria-label="초안 단계">
-    <span class="step active" data-step="1">1. 문항</span>
-    <span class="step" data-step="2">2. 기업</span>
-    <span class="step" data-step="3">3. 에피소드</span>
-    <span class="step" data-step="4">4. 근거</span>
-    <span class="step" data-step="5">5. 생성</span>
-  </div>
 
-  <div class="wizard-step" id="wizard-step-1">
-    <label>문항 유형</label>
-    <select class="input" id="draft-question-type">
-      <option value="gakuchika">gakuchika</option>
-      <option value="self_pr">self_pr</option>
-      <option value="motivation">motivation</option>
-      <option value="strengths_weaknesses">strengths_weaknesses</option>
-      <option value="future_plan">future_plan</option>
-      <option value="job_hunting_axis">job_hunting_axis</option>
-    </select>
-    <label>글자 수 제한</label>
-    <div class="row">
-      <button class="btn" data-char-preset="250" type="button">250</button>
-      <button class="btn" data-char-preset="400" type="button">400</button>
-      <button class="btn" data-char-preset="600" type="button">600</button>
-      <input class="input" id="draft-char-limit" type="number" min="100" max="1200" value="400" />
-    </div>
-  </div>
+  <label>문항 유형</label>
+  <select class="input" id="draft-question-type">
+    <option value="gakuchika">gakuchika</option>
+    <option value="self_pr">self_pr</option>
+    <option value="motivation">motivation</option>
+  </select>
 
-  <div class="wizard-step hidden" id="wizard-step-2">
-    <label>기업 선택 (선택)</label>
-    <select class="input" id="draft-company-select"></select>
-  </div>
+  <label>글자 수 제한</label>
+  <input class="input" id="draft-char-limit" type="number" min="100" max="1200" value="400" />
 
-  <div class="wizard-step hidden" id="wizard-step-3">
-    <p class="muted">생성에 포함할 에피소드를 선택하세요.</p>
-    <div id="draft-episode-picker" class="picker"></div>
-  </div>
+  <label>기업 선택</label>
+  <select class="input" id="draft-company-select"></select>
 
-  <div class="wizard-step hidden" id="wizard-step-4">
-    <div class="row-between">
-      <p class="muted">근거 청크를 선택하세요(고정 우선, 목적 태그 필터 지원).</p>
-      <input class="input search" id="draft-chunk-search" placeholder="청크 검색" />
-    </div>
-    <div class="chips" id="draft-purpose-filter"></div>
-    <div id="draft-chunk-picker" class="picker"></div>
-  </div>
+  <label>프로필 선택</label>
+  <select class="input" id="draft-profile-select"></select>
 
-  <div class="wizard-step hidden" id="wizard-step-5">
-    <div class="inline-error" id="draft-generate-error"></div>
+  <label>소스 선택</label>
+  <div id="draft-source-picker" class="picker"></div>
+
+  <div class="row">
     <button class="btn primary" type="button" id="draft-generate-btn">초안 생성</button>
+    <button class="btn" type="button" id="draft-open-export">내보내기 열기</button>
   </div>
 
-  <div class="row-between">
-    <button class="btn" type="button" id="draft-prev-step">이전</button>
-    <button class="btn primary" type="button" id="draft-next-step">다음</button>
-  </div>
+  <div class="inline-error" id="draft-generate-error"></div>
 </section>
 
 <section class="card grouped">
-  <div class="row-between">
-    <h2 class="section-title">검토</h2>
-    <select class="input search" id="draft-history-select"></select>
-  </div>
-  <div id="draft-error-panel" class="inline-error"></div>
+  <h2 class="section-title">드래프트 히스토리</h2>
+  <select class="input" id="draft-history-select"></select>
+  <div class="muted">저장된 생성 결과를 다시 불러옵니다.</div>
+</section>
+
+<section class="card grouped">
+  <h2 class="section-title">미리보기</h2>
   <div id="draft-preview" class="preview-box muted">아직 초안이 없습니다.</div>
   <div class="muted" id="draft-char-count">0 자</div>
-  <div id="draft-claims" class="list"></div>
-</section>
-
-<section class="card grouped">
-  <h2 class="section-title">QA 패널</h2>
   <div id="draft-qa-panel" class="list"></div>
-</section>
-
-<section class="card grouped">
-  <div class="row-between">
-    <h2 class="section-title">내보내기</h2>
-    <button class="btn primary" type="button" id="draft-open-export">내보내기 열기</button>
-  </div>
 </section>
 
 <div class="modal hidden" id="export-modal">
@@ -88,16 +49,11 @@
       <h2 class="section-title">초안 내보내기</h2>
       <button class="btn ghost" type="button" data-close-export="true">닫기</button>
     </div>
-    <label>모드</label>
-    <select class="input" id="export-mode">
-      <option value="strict" selected>엄격</option>
-      <option value="relaxed">완화</option>
-    </select>
     <label>압축 레벨</label>
-    <input class="input" id="export-compression" type="number" min="1" max="3" value="1" />
-    <div class="inline-error" id="export-error"></div>
+    <input class="input" id="export-compression-level" type="number" min="1" max="3" value="1" />
     <button class="btn primary" type="button" id="export-run-btn">내보내기 실행</button>
-    <textarea class="input" rows="8" id="export-result" placeholder="내보내기 결과가 여기에 표시됩니다"></textarea>
-    <button class="btn" type="button" id="export-copy-btn">복사</button>
+    <div id="export-output" class="preview-box"></div>
   </div>
 </div>
+
+<div class="card" id="ui-toast" style="display:none;"></div>
