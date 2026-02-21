@@ -66,3 +66,10 @@ xcodegen generate
 ```
 
 Then open the generated `ESWriterApp.xcodeproj` in Xcode and run the app.
+
+## Git quick check
+```bash
+git branch --show-current
+git log -1 --oneline
+git status -sb
+```
