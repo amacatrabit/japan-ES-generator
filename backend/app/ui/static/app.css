@@ -7,7 +7,7 @@
   --text: #10131a;
   --muted: #5f6673;
   --border: #dbe1ea;
-  --accent: #1677ff;
+  --accent: #4f46e5;
   --accent-soft: rgba(22, 119, 255, 0.12);
   --ok: #1d7a45;
   --warn: #9a6400;
@@ -242,9 +242,10 @@ textarea.input {
 }
 
 .btn.primary {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), #7c3aed);
   border-color: transparent;
   color: #fff;
+  box-shadow: 0 10px 20px rgba(79, 70, 229, 0.25);
 }
 
 .btn.secondary {
@@ -468,3 +469,8 @@ textarea.input {
 .hidden {
   display: none !important;
 }
+
+
+.picker { display:grid; gap:8px; }
+.inline-error { color:#b42318; min-height:20px; font-size:0.9rem; }
+.preview-box { border:1px solid var(--border); border-radius:12px; padding:12px; background:var(--surface); white-space:pre-wrap; }

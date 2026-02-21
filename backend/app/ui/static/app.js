@@ -85,6 +85,12 @@ function detailValue(el) {
   return el && typeof el.value === "string" ? el.value.trim() : "";
 }
 
+function toInt(value, fallback = 400) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(100, Math.min(1200, Math.round(n)));
+}
+
 function initSourcesPage() {
   const createTitle = document.getElementById("source-create-title");
   const createText = document.getElementById("source-create-text");
@@ -377,6 +383,7 @@ function initCompanyPage() {
       try {
         const companyName = detailValue(nameEl);
         if (!companyName) throw new Error("기업명을 먼저 입력하세요");
+        researchBtn.disabled = true;
         const result = await api("/v1/company/research", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -388,6 +395,8 @@ function initCompanyPage() {
         toast("research complete", false);
       } catch (e) {
         toast(`research failed: ${e.message}`, true);
+      } finally {
+        researchBtn.disabled = false;
       }
     });
   }
@@ -406,7 +415,7 @@ function initCompanyPage() {
         role: detailValue(roleEl),
         company_info: detailValue(infoEl),
         question_template: detailValue(qTemplateEl) || "지원 동기 및 기여 가능성을 작성하세요.",
-        char_limit: Number(detailValue(charLimitEl) || "400"),
+        char_limit: toInt(detailValue(charLimitEl) || "400"),
         updated_at: new Date().toISOString(),
       });
       saveCompanies(items);
@@ -433,7 +442,7 @@ function initCompanyPage() {
             role: detailValue(dRole),
             company_info: detailValue(dInfo),
             question_template: detailValue(dQTemplate),
-            char_limit: Number(detailValue(dCharLimit) || "400"),
+            char_limit: toInt(detailValue(dCharLimit) || "400"),
             updated_at: new Date().toISOString(),
           }
         : item));
@@ -532,6 +541,14 @@ function initDraftsPage() {
       sourcePicker.appendChild(label);
     });
 
+    const ready = companies.length > 0 && profiles.length > 0 && sources.length > 0;
+    generateBtn.disabled = !ready;
+    if (!ready && err) {
+      err.textContent = "회사/프로필/소스를 먼저 최소 1개씩 준비해주세요.";
+    } else if (err) {
+      err.textContent = "";
+    }
+
     renderHistory();
   }
 
@@ -581,6 +598,8 @@ function initDraftsPage() {
         const chunks = await loadSelectedChunks();
         if (!chunks.length) throw new Error("소스를 하나 이상 선택하세요");
 
+        if (!profileSelect.value) throw new Error("프로필을 먼저 선택하세요");
+        if (!companySelect.value) throw new Error("회사를 먼저 선택하세요");
         const profile = await api(`/v1/profiles/${profileSelect.value}`);
         const selectedCompany = loadCompanies().find((c) => c.id === companySelect.value);
         if (selectedCompany?.char_limit && charLimit) charLimit.value = String(selectedCompany.char_limit);
@@ -602,8 +621,9 @@ function initDraftsPage() {
             question_set: [],
           },
           question_type: detailValue(questionType) || "gakuchika",
-          char_limit: Number(detailValue(charLimit) || "400"),
+          char_limit: toInt(detailValue(charLimit) || "400"),
           writing_rules: null,
+          question_template: selectedCompany?.question_template || "",
         };
 
         const result = await api("/v1/generate", {
@@ -614,7 +634,10 @@ function initDraftsPage() {
 
         lastClaims = result.claims || [];
         const text = (lastClaims || []).map((c) => c.text).join(" ");
-        preview.textContent = text || "생성된 초안이 없습니다.";
+        const qHeader = selectedCompany?.question_template ? `질문: ${selectedCompany.question_template}
+
+` : "";
+        preview.textContent = (qHeader + text) || "생성된 초안이 없습니다.";
         if (charCount) charCount.textContent = `${text.length} 자`;
 
         if (qaPanel) {
@@ -633,7 +656,7 @@ function initDraftsPage() {
           created_at: new Date().toLocaleString(),
           company_name: selectedCompany?.company_name || "貴社",
           question_type: payload.question_type,
-          text,
+          text: qHeader + text,
           claims: lastClaims,
           qa_findings: result.qa_findings || [],
         });
@@ -661,7 +684,7 @@ function initDraftsPage() {
         if (!lastClaims.length) throw new Error("먼저 초안을 생성하세요");
         const payload = {
           claims: lastClaims,
-          char_limit: Number(detailValue(charLimit) || "400"),
+          char_limit: toInt(detailValue(charLimit) || "400"),
           compression_level: Number(detailValue(exportLevel) || "1"),
         };
         const result = await api("/v1/export", {
