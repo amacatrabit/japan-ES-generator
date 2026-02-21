@@ -1,14 +1,14 @@
 <section class="section card grouped" id="draft-wizard">
-  <h2>Draft Wizard</h2>
+  <h2>초안 마법사</h2>
   <div class="stepper">
-    <span class="step active" data-step="1">1. Question</span>
-    <span class="step" data-step="2">2. Episodes</span>
-    <span class="step" data-step="3">3. Evidence</span>
-    <span class="step" data-step="4">4. Generate</span>
+    <span class="step active" data-step="1">1. 문항</span>
+    <span class="step" data-step="2">2. 에피소드</span>
+    <span class="step" data-step="3">3. 근거</span>
+    <span class="step" data-step="4">4. 생성</span>
   </div>
 
   <div class="wizard-step" id="wizard-step-1">
-    <label>Question Type</label>
+    <label>문항 유형</label>
     <select class="input" id="draft-question-type">
       <option value="gakuchika">gakuchika</option>
       <option value="self_pr">self_pr</option>
@@ -17,60 +17,60 @@
       <option value="future_plan">future_plan</option>
       <option value="job_hunting_axis">job_hunting_axis</option>
     </select>
-    <label>Character Limit</label>
+    <label>글자 수 제한</label>
     <div class="row">
       <button class="btn" data-char-preset="250" type="button">250</button>
       <button class="btn" data-char-preset="400" type="button">400</button>
       <button class="btn" data-char-preset="600" type="button">600</button>
       <input class="input" id="draft-char-limit" type="number" min="100" max="1200" value="400" />
     </div>
-    <label>Company Context (optional)</label>
+    <label>기업 컨텍스트 (선택)</label>
     <select class="input" id="draft-company-select"></select>
   </div>
 
   <div class="wizard-step hidden" id="wizard-step-2">
-    <p class="muted">Select episodes to include in generation.</p>
+    <p class="muted">생성에 포함할 에피소드를 선택하세요.</p>
     <div id="draft-episode-picker" class="picker"></div>
   </div>
 
   <div class="wizard-step hidden" id="wizard-step-3">
     <div class="row-between">
-      <p class="muted">Select evidence chunks (pinned shown first).</p>
-      <input class="input search" id="draft-chunk-search" placeholder="Search chunks" />
+      <p class="muted">근거 청크를 선택하세요(고정 청크 우선).</p>
+      <input class="input search" id="draft-chunk-search" placeholder="청크 검색" />
     </div>
     <div id="draft-chunk-picker" class="picker"></div>
   </div>
 
   <div class="wizard-step hidden" id="wizard-step-4">
     <div class="inline-error" id="draft-generate-error"></div>
-    <button class="btn primary" type="button" id="draft-generate-btn">Generate Draft</button>
+    <button class="btn primary" type="button" id="draft-generate-btn">초안 생성</button>
   </div>
 
   <div class="row-between">
-    <button class="btn" type="button" id="draft-prev-step">Back</button>
-    <button class="btn primary" type="button" id="draft-next-step">Next</button>
+    <button class="btn" type="button" id="draft-prev-step">이전</button>
+    <button class="btn primary" type="button" id="draft-next-step">다음</button>
   </div>
 </section>
 
 <section class="section card grouped">
   <div class="row-between">
-    <h2>Review</h2>
+    <h2>검토</h2>
     <select class="input search" id="draft-history-select"></select>
   </div>
-  <div id="draft-preview" class="preview-box muted">No draft yet.</div>
-  <div class="muted" id="draft-char-count">0 chars</div>
+  <div id="draft-preview" class="preview-box muted">아직 초안이 없습니다.</div>
+  <div class="muted" id="draft-char-count">0 자</div>
   <div id="draft-claims" class="list"></div>
 </section>
 
 <section class="section card grouped">
-  <h2>QA Panel</h2>
+  <h2>QA 패널</h2>
   <div id="draft-qa-panel" class="list"></div>
 </section>
 
 <section class="section card grouped">
   <div class="row-between">
-    <h2>Export</h2>
-    <button class="btn primary" type="button" id="draft-open-export">Open Export</button>
+    <h2>내보내기</h2>
+    <button class="btn primary" type="button" id="draft-open-export">내보내기 열기</button>
   </div>
 </section>
 
@@ -78,19 +78,19 @@
   <div class="modal-backdrop" data-close-export="true"></div>
   <div class="modal-content card grouped">
     <div class="row-between">
-      <h2>Export Draft</h2>
-      <button class="btn" type="button" data-close-export="true">Close</button>
+      <h2>초안 내보내기</h2>
+      <button class="btn" type="button" data-close-export="true">닫기</button>
     </div>
-    <label>Mode</label>
+    <label>모드</label>
     <select class="input" id="export-mode">
-      <option value="strict" selected>strict</option>
-      <option value="relaxed">relaxed</option>
+      <option value="strict" selected>엄격</option>
+      <option value="relaxed">완화</option>
     </select>
-    <label>Compression Level</label>
+    <label>압축 레벨</label>
     <input class="input" id="export-compression" type="number" min="1" max="3" value="1" />
     <div class="inline-error" id="export-error"></div>
-    <button class="btn primary" type="button" id="export-run-btn">Run Export</button>
-    <textarea class="input" rows="8" id="export-result" placeholder="Exported text will appear here"></textarea>
-    <button class="btn" type="button" id="export-copy-btn">Copy</button>
+    <button class="btn primary" type="button" id="export-run-btn">내보내기 실행</button>
+    <textarea class="input" rows="8" id="export-result" placeholder="내보내기 결과가 여기에 표시됩니다"></textarea>
+    <button class="btn" type="button" id="export-copy-btn">복사</button>
   </div>
 </div>

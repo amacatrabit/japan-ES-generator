@@ -9,14 +9,14 @@ client = TestClient(app)
 def test_sources_page_renders() -> None:
     response = client.get("/sources")
     assert response.status_code == 200
-    assert "Sources" in response.text
+    assert "소스" in response.text
 
 
 def test_profile_company_drafts_pages_render() -> None:
     for path, expected in [
-        ("/profile", "Profile"),
-        ("/company", "Company"),
-        ("/drafts", "Draft Wizard"),
+        ("/profile", "프로필"),
+        ("/company", "기업"),
+        ("/drafts", "초안 마법사"),
     ]:
         response = client.get(path)
         assert response.status_code == 200

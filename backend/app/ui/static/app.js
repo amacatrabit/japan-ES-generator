@@ -91,7 +91,7 @@
       state.sources.forEach(function (source) {
         var el = document.createElement('div');
         el.className = 'source-card';
-        el.innerHTML = '<div class="row-between"><strong>' + escapeHtml(source.title) + '</strong><div class="row"><button class="btn" data-open-source="' + source.id + '">Open</button><button class="btn" data-del-source="' + source.id + '">Delete</button></div></div><p class="muted">' + new Date(source.createdAt).toLocaleString() + '</p>';
+        el.innerHTML = '<div class="row-between"><strong>' + escapeHtml(source.title) + '</strong><div class="row"><button class="btn" data-open-source="' + source.id + '">열기</button><button class="btn" data-del-source="' + source.id + '">삭제</button></div></div><p class="muted">' + new Date(source.createdAt).toLocaleString() + '</p>';
         sourceList.appendChild(el);
       });
     }
@@ -105,7 +105,7 @@
       chunkList.innerHTML = '';
       chunkEmpty.classList.toggle('hidden', chunks.length > 0 || !selectedSourceId);
       var selectedSource = state.sources.find(function (s) { return s.id === selectedSourceId; });
-      detailTitle.textContent = selectedSource ? 'Source Detail — ' + selectedSource.title : 'Source Detail';
+      detailTitle.textContent = selectedSource ? '소스 상세 — ' + selectedSource.title : '소스 상세';
 
       chunks.forEach(function (chunk) {
         var pinned = state.pinnedChunks.indexOf(chunk.key) >= 0;
@@ -116,7 +116,7 @@
         var el = document.createElement('div');
         el.className = 'chunk-card grouped' + (highlightedChunkKey === chunk.key ? ' highlight' : '');
         el.setAttribute('id', 'chunk-' + safeId(chunk.key));
-        el.innerHTML = '<p>' + escapeHtml(chunk.preview.slice(0, 180)) + '</p><div class="row"><button class="btn ' + (pinned ? 'primary' : '') + '" data-pin-chunk="' + chunk.key + '">' + (pinned ? 'Pinned' : 'Pin') + '</button><div class="chips">' + chipHtml + '</div></div>';
+        el.innerHTML = '<p>' + escapeHtml(chunk.preview.slice(0, 180)) + '</p><div class="row"><button class="btn ' + (pinned ? 'primary' : '') + '" data-pin-chunk="' + chunk.key + '">' + (pinned ? '고정됨' : '고정') + '</button><div class="chips">' + chipHtml + '</div></div>';
         chunkList.appendChild(el);
       });
 
@@ -133,7 +133,7 @@
       var title = titleEl.value.trim();
       var content = contentEl.value.trim();
       if (!title || !content) {
-        errorEl.textContent = 'Title and content are required.';
+        errorEl.textContent = '제목과 내용은 필수입니다.';
         return;
       }
       errorEl.textContent = '';
@@ -290,7 +290,7 @@
       state.episodes.forEach(function (ep) {
         var el = document.createElement('div');
         el.className = 'episode-card grouped';
-        el.innerHTML = '<div class="row-between"><strong>' + escapeHtml(ep.title) + '</strong><div class="row"><button class="btn" data-ep-edit="' + ep.id + '">Edit</button><button class="btn" data-ep-del="' + ep.id + '">Delete</button></div></div><div class="muted">Linked evidence: ' + (ep.linkedChunkKeys || []).length + '</div>';
+        el.innerHTML = '<div class="row-between"><strong>' + escapeHtml(ep.title) + '</strong><div class="row"><button class="btn" data-ep-edit="' + ep.id + '">Edit</button><button class="btn" data-ep-del="' + ep.id + '">삭제</button></div></div><div class="muted">Linked evidence: ' + (ep.linkedChunkKeys || []).length + '</div>';
         episodeList.appendChild(el);
       });
     }
@@ -333,7 +333,7 @@
       var errorEl = document.getElementById('episode-form-error');
       var ep = getEpisodeForm();
       if (!ep.title || !ep.period) {
-        errorEl.textContent = 'Title and period are required.';
+        errorEl.textContent = '제목과 기간은 필수입니다.';
         return;
       }
       errorEl.textContent = '';
@@ -363,7 +363,7 @@
       state.companies.forEach(function (c) {
         var el = document.createElement('div');
         el.className = 'company-card';
-        el.innerHTML = '<div class="row-between"><strong>' + escapeHtml(c.name) + '</strong><div class="row"><button class="btn" data-company-open="' + c.id + '">Open</button><button class="btn" data-company-del="' + c.id + '">Delete</button></div></div><div class="muted">' + escapeHtml(c.role || '-') + '</div>';
+        el.innerHTML = '<div class="row-between"><strong>' + escapeHtml(c.name) + '</strong><div class="row"><button class="btn" data-company-open="' + c.id + '">열기</button><button class="btn" data-company-del="' + c.id + '">삭제</button></div></div><div class="muted">' + escapeHtml(c.role || '-') + '</div>';
         list.appendChild(el);
       });
     }
@@ -375,13 +375,13 @@
       var questionList = document.getElementById('company-question-list');
       var company = activeCompany();
       if (!company) {
-        detailTitle.textContent = 'Company Detail';
+        detailTitle.textContent = '기업 상세';
         phraseList.innerHTML = '';
-        sourceLinks.innerHTML = '<div class="empty-state">Select a company first.</div>';
+        sourceLinks.innerHTML = '<div class="empty-state">기업을 먼저 선택하세요.</div>';
         questionList.innerHTML = '';
         return;
       }
-      detailTitle.textContent = 'Company Detail — ' + company.name;
+      detailTitle.textContent = '기업 상세 — ' + company.name;
 
       phraseList.innerHTML = '';
       (company.keyPhrases || []).forEach(function (phrase, idx) {
@@ -394,7 +394,7 @@
 
       sourceLinks.innerHTML = '';
       if (state.sources.length === 0) {
-        sourceLinks.innerHTML = '<div class="empty-state">No sources to link yet.</div>';
+        sourceLinks.innerHTML = '<div class="empty-state">연결할 소스가 없습니다.</div>';
       } else {
         state.sources.forEach(function (s) {
           var linked = (company.linkedSourceIds || []).indexOf(s.id) >= 0;
@@ -407,7 +407,7 @@
 
       questionList.innerHTML = '';
       if ((company.questionSet || []).length === 0) {
-        questionList.innerHTML = '<div class="empty-state">No questions yet.</div>';
+        questionList.innerHTML = '<div class="empty-state">질문이 없습니다.</div>';
       } else {
         company.questionSet.forEach(function (q) {
           var opts = QUESTION_TYPES.map(function (type) {
@@ -415,7 +415,7 @@
           }).join('');
           var row = document.createElement('div');
           row.className = 'row';
-          row.innerHTML = '<select class="input" data-q-type="' + q.id + '">' + opts + '</select><input class="input" type="number" min="100" max="1200" value="' + q.charLimit + '" data-q-limit="' + q.id + '" /><button class="btn" data-q-del="' + q.id + '">Delete</button>';
+          row.innerHTML = '<select class="input" data-q-type="' + q.id + '">' + opts + '</select><input class="input" type="number" min="100" max="1200" value="' + q.charLimit + '" data-q-limit="' + q.id + '" /><button class="btn" data-q-del="' + q.id + '">삭제</button>';
           questionList.appendChild(row);
         });
       }
@@ -426,7 +426,7 @@
       var role = val('company-role');
       var err = document.getElementById('company-form-error');
       if (!name) {
-        err.textContent = 'Company name is required.';
+        err.textContent = '기업명은 필수입니다.';
         return;
       }
       err.textContent = '';
@@ -540,7 +540,7 @@
     }
 
     function refreshCompanyOptions() {
-      companySelect.innerHTML = '<option value="">(none)</option>';
+      companySelect.innerHTML = '<option value="">(선택 안 함)</option>';
       state.companies.forEach(function (c) {
         var opt = document.createElement('option');
         opt.value = c.id;
@@ -554,7 +554,7 @@
       var el = document.getElementById('draft-episode-picker');
       el.innerHTML = '';
       if (state.episodes.length === 0) {
-        el.innerHTML = '<div class="muted">No episodes available. Add episodes in Profile.</div>';
+        el.innerHTML = '<div class="muted">선택 가능한 에피소드가 없습니다. 프로필에서 에피소드를 추가하세요.</div>';
         return;
       }
       state.episodes.forEach(function (ep) {
@@ -575,7 +575,7 @@
       });
       el.innerHTML = '';
       if (chunks.length === 0) {
-        el.innerHTML = '<div class="muted">No chunks available. Add sources first.</div>';
+        el.innerHTML = '<div class="muted">선택 가능한 청크가 없습니다. 먼저 소스를 추가하세요.</div>';
         return;
       }
       chunks.forEach(function (chunk) {
@@ -597,7 +597,7 @@
       var select = document.getElementById('draft-history-select');
       select.innerHTML = '';
       if (state.drafts.length === 0) {
-        select.innerHTML = '<option value="">No drafts yet</option>';
+        select.innerHTML = '<option value="">초안이 없습니다</option>';
         return;
       }
       state.drafts.forEach(function (d) {
@@ -612,34 +612,34 @@
 
     function suggestionForFinding(f) {
       var code = (f.code || '').toUpperCase();
-      if (code === 'MISSING_EVIDENCE') return 'Add or pin supporting chunks in Sources, then regenerate.';
-      if (code === 'BANNED_PHRASE') return 'Rewrite with concrete facts and measurable context.';
-      if (code === 'MISSING_QUANT') return 'Add numbers, duration, frequency, or comparisons.';
-      if (code === 'PASSIVE_STANCE') return 'Rephrase with your proactive actions and ownership.';
-      if (code === 'ABSTRACT_SUFFIX') return 'Replace abstract wording with specific behaviors/outcomes.';
-      return 'Review the related claim and tighten evidence-based wording.';
+      if (code === 'MISSING_EVIDENCE') return '소스에서 근거 청크를 추가/고정한 뒤 다시 생성하세요.';
+      if (code === 'BANNED_PHRASE') return '구체적 사실과 측정 가능한 맥락으로 다시 작성하세요.';
+      if (code === 'MISSING_QUANT') return '숫자, 기간, 빈도, 비교 표현을 추가하세요.';
+      if (code === 'PASSIVE_STANCE') return '주도적 행동과 책임이 드러나게 다시 표현하세요.';
+      if (code === 'ABSTRACT_SUFFIX') return '추상 표현 대신 구체적 행동/성과로 바꾸세요.';
+      return '관련 주장을 검토하고 근거 기반 표현으로 다듬으세요.';
     }
 
     function drawReview() {
       drawDraftHistoryOptions();
       var draft = state.drafts.find(function (d) { return d.id === currentDraftId; }) || null;
       var preview = strictPreviewText(draft);
-      document.getElementById('draft-preview').textContent = preview || 'No draft yet.';
-      document.getElementById('draft-char-count').textContent = String(preview.length) + ' chars';
+      document.getElementById('draft-preview').textContent = preview || '아직 초안이 없습니다.';
+      document.getElementById('draft-char-count').textContent = String(preview.length) + ' 자';
 
       var claimsEl = document.getElementById('draft-claims');
       claimsEl.innerHTML = '';
       if (!draft) {
-        claimsEl.innerHTML = '<div class="empty-state">Generate a draft to review claims.</div>';
+        claimsEl.innerHTML = '<div class="empty-state">검토할 초안을 먼저 생성하세요.</div>';
       } else {
         (draft.response.claims || []).forEach(function (claim, idx) {
           var badge = claim.export_allowed ? '<span class="badge exportable">✅ Exportable</span>' : '<span class="badge needs-evidence">⚠️ Needs Evidence</span>';
           var evidence = (claim.evidence || []).map(function (e) {
-            return '<li><a href="/sources#chunk=' + encodeURIComponent(e.chunk_id) + '">Jump to chunk</a> — ' + escapeHtml(e.quote || '') + '</li>';
-          }).join('') || '<li class="muted">No evidence refs.</li>';
+            return '<li><a href="/sources#chunk=' + encodeURIComponent(e.chunk_id) + '">청크로 이동</a> — ' + escapeHtml(e.quote || '') + '</li>';
+          }).join('') || '<li class="muted">근거 참조가 없습니다.</li>';
           var el = document.createElement('details');
           el.className = 'claim-card card';
-          el.innerHTML = '<summary class="row-between"><span><strong>Claim ' + (idx + 1) + '</strong> ' + escapeHtml(claim.text) + '</span>' + badge + '</summary><ul>' + evidence + '</ul>';
+          el.innerHTML = '<summary class="row-between"><span><strong>주장 ' + (idx + 1) + '</strong> ' + escapeHtml(claim.text) + '</span>' + badge + '</summary><ul>' + evidence + '</ul>';
           claimsEl.appendChild(el);
         });
       }
@@ -647,7 +647,7 @@
       var qaPanel = document.getElementById('draft-qa-panel');
       qaPanel.innerHTML = '';
       if (!draft) {
-        qaPanel.innerHTML = '<div class="empty-state">QA findings appear after generation.</div>';
+        qaPanel.innerHTML = '<div class="empty-state">생성 후 QA 결과가 표시됩니다.</div>';
       } else {
         var groups = { blocker: [], warn: [], info: [] };
         (draft.response.qa_findings || []).forEach(function (f) {
@@ -662,9 +662,9 @@
           wrap.className = 'qa-group';
           var items = findings.map(function (f) {
             var suggestion = suggestionForFinding(f);
-            return '<li><strong>' + escapeHtml(f.code) + ':</strong> ' + escapeHtml(f.message || '') + (f.claim_id ? ' <span class="muted">(claim ' + escapeHtml(f.claim_id) + ')</span>' : '') + '<div class="muted">Suggestion: ' + escapeHtml(suggestion) + '</div></li>';
+            return '<li><strong>' + escapeHtml(f.code) + ':</strong> ' + escapeHtml(f.message || '') + (f.claim_id ? ' <span class="muted">(claim ' + escapeHtml(f.claim_id) + ')</span>' : '') + '<div class="muted">제안: ' + escapeHtml(suggestion) + '</div></li>';
           }).join('');
-          wrap.innerHTML = '<div class="qa-title">' + lvl.toUpperCase() + '</div><ul>' + items + '</ul>';
+          wrap.innerHTML = '<div class="qa-title">' + ({blocker:'차단',warn:'경고',info:'정보'}[lvl] || lvl) + '</div><ul>' + items + '</ul>';
           qaPanel.appendChild(wrap);
         });
       }
@@ -709,7 +709,7 @@
     async function generateDraft() {
       document.getElementById('draft-generate-error').textContent = '';
       if (wizard.chunkKeys.length === 0) {
-        showError('draft-generate-error', 'Select at least one evidence chunk.');
+        showError('draft-generate-error', '근거 청크를 최소 1개 선택하세요.');
         return;
       }
       var payload = {
@@ -729,7 +729,7 @@
         });
         if (!res.ok) {
           var errBody = await safeJson(res);
-          showError('draft-generate-error', (errBody.detail || 'Generation failed') + ' (status ' + res.status + ')');
+          showError('draft-generate-error', (errBody.detail || '생성에 실패했습니다') + ' (status ' + res.status + ')');
           return;
         }
         var data = await res.json();
@@ -738,17 +738,17 @@
         currentDraftId = draft.id;
         saveStore(state);
         drawReview();
-        toast('Draft generated.');
+        toast('초안이 생성되었습니다.');
       } catch (e) {
-        showError('draft-generate-error', 'Backend unreachable. Please retry.');
-        toast('Backend unreachable while generating draft.', { onRetry: generateDraft });
+        showError('draft-generate-error', '백엔드에 연결할 수 없습니다. 다시 시도하세요.');
+        toast('초안 생성 중 백엔드 연결에 실패했습니다.', { onRetry: generateDraft });
       }
     }
 
     async function runExport() {
       var draft = state.drafts.find(function (d) { return d.id === currentDraftId; });
       if (!draft) {
-        showError('export-error', 'Generate a draft first.');
+        showError('export-error', '먼저 초안을 생성하세요.');
         return;
       }
       var mode = document.getElementById('export-mode').value;
@@ -764,15 +764,15 @@
         });
         if (!res.ok) {
           var errBody = await safeJson(res);
-          showError('export-error', (errBody.detail || 'Export failed') + ' (status ' + res.status + ')');
+          showError('export-error', (errBody.detail || '내보내기에 실패했습니다') + ' (status ' + res.status + ')');
           return;
         }
         var data = await res.json();
         document.getElementById('export-result').value = data.text || '';
         document.getElementById('export-error').textContent = '';
       } catch (e) {
-        showError('export-error', 'Backend unreachable. Please retry export.');
-        toast('Backend unreachable while exporting.', { onRetry: runExport });
+        showError('export-error', '내보내기 중 백엔드에 연결할 수 없습니다. 다시 시도하세요.');
+        toast('내보내기 중 백엔드 연결에 실패했습니다.', { onRetry: runExport });
       }
     }
 
@@ -832,9 +832,9 @@
       area.select();
       try {
         document.execCommand('copy');
-        toast('Copied export text.');
+        toast('내보내기 텍스트를 복사했습니다.');
       } catch (e) {
-        toast('Copy failed. Select text manually.');
+        toast('복사에 실패했습니다. 직접 텍스트를 선택해 복사하세요.');
       }
     });
 
@@ -860,7 +860,7 @@
     if (options && typeof options.onRetry === 'function') {
       var retry = document.createElement('button');
       retry.className = 'btn';
-      retry.textContent = 'Retry';
+      retry.textContent = '재시도';
       retry.style.marginTop = '8px';
       retry.addEventListener('click', function () { options.onRetry(); });
       node.appendChild(retry);

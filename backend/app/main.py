@@ -153,22 +153,22 @@ def root() -> tuple[str, int, dict[str, str]]:
 
 @app.get("/sources")
 def sources_page() -> str:
-    return _render_page("sources.html", title="ES Writer - Sources", heading="Sources", page_key="sources")
+    return _render_page("sources.html", title="ES Writer - 소스", heading="소스", page_key="sources")
 
 
 @app.get("/profile")
 def profile_page() -> str:
-    return _render_page("profile.html", title="ES Writer - Profile", heading="Profile", page_key="profile")
+    return _render_page("profile.html", title="ES Writer - 프로필", heading="프로필", page_key="profile")
 
 
 @app.get("/company")
 def company_page() -> str:
-    return _render_page("company.html", title="ES Writer - Company", heading="Company", page_key="company")
+    return _render_page("company.html", title="ES Writer - 기업", heading="기업", page_key="company")
 
 
 @app.get("/drafts")
 def drafts_page() -> str:
-    return _render_page("drafts.html", title="ES Writer - Drafts", heading="Drafts", page_key="drafts")
+    return _render_page("drafts.html", title="ES Writer - 초안", heading="초안", page_key="drafts")
 
 
 @app.get("/ui/static/app.css")

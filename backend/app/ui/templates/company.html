@@ -1,37 +1,37 @@
 <section class="section card grouped">
-  <h2>Company</h2>
+  <h2>기업</h2>
   <div class="inline-error" id="company-form-error"></div>
-  <input class="input" id="company-name" placeholder="Company name" />
-  <input class="input" id="company-role" placeholder="Role" />
-  <button class="btn primary" type="button" id="company-add-btn">Add Company</button>
+  <input class="input" id="company-name" placeholder="기업 name" />
+  <input class="input" id="company-role" placeholder="직무" />
+  <button class="btn primary" type="button" id="company-add-btn">추가 기업</button>
 </section>
 
 <section class="section card grouped">
-  <h2>Companies</h2>
+  <h2>기업 목록</h2>
   <div id="company-list" class="list"></div>
-  <div class="empty-state" id="company-empty">No companies yet.</div>
+  <div class="empty-state" id="company-empty">아직 기업이 없습니다.</div>
 </section>
 
 <section class="section card grouped" id="company-detail-section">
-  <h2 id="company-detail-title">Company Detail</h2>
+  <h2 id="company-detail-title">기업 Detail</h2>
   <div class="grouped">
-    <strong>Key Phrase Chips</strong>
+    <strong>핵심 키워드 칩</strong>
     <div class="row">
-      <input class="input" id="company-phrase-input" placeholder="Add key phrase" />
-      <button class="btn" type="button" id="company-phrase-add">Add</button>
+      <input class="input" id="company-phrase-input" placeholder="핵심 키워드 추가" />
+      <button class="btn" type="button" id="company-phrase-add">추가</button>
     </div>
     <div id="company-phrase-list" class="chips"></div>
   </div>
 
   <div class="grouped">
-    <strong>Linked Sources</strong>
+    <strong>연결된 소스</strong>
     <div id="company-source-links" class="list"></div>
   </div>
 
   <div class="grouped">
     <div class="row-between">
-      <strong>Question Set</strong>
-      <button class="btn" id="company-question-add" type="button">+ Add Question</button>
+      <strong>질문 세트</strong>
+      <button class="btn" id="company-question-add" type="button">+ 추가 Question</button>
     </div>
     <div id="company-question-list" class="list"></div>
   </div>

@@ -1,48 +1,48 @@
 <section class="section card grouped">
-  <h2>Basic Profile</h2>
-  <label>Name</label>
-  <input class="input" id="profile-name" placeholder="Your name" />
-  <h3>Writing Rules</h3>
+  <h2>기본 프로필</h2>
+  <label>이름</label>
+  <input class="input" id="profile-name" placeholder="이름 입력" />
+  <h3>작성 규칙</h3>
   <label><input type="checkbox" id="rule-avoid-teiru" /> Avoid ～ている</label>
   <label><input type="checkbox" id="rule-prefer-omou" /> Prefer 思う over 考える</label>
-  <label><input type="checkbox" id="rule-avoid-kanji" /> Avoid excessive kanji compounds</label>
+  <label><input type="checkbox" id="rule-avoid-kanji" /> 과도한 한자 복합어 피하기</label>
 </section>
 
 <section class="section card grouped">
   <div class="row-between">
-    <h2>Episodes</h2>
-    <button class="btn primary" id="episode-add-btn" type="button">Add Episode</button>
+    <h2>에피소드</h2>
+    <button class="btn primary" id="episode-add-btn" type="button">에피소드 추가</button>
   </div>
   <div id="episode-list" class="list"></div>
-  <div class="empty-state" id="episode-empty">No episodes yet. Add one to build reusable claims.</div>
+  <div class="empty-state" id="episode-empty">아직 에피소드가 없습니다. 재사용 가능한 주장 생성을 위해 추가하세요.</div>
 </section>
 
 <div class="modal hidden" id="episode-modal">
   <div class="modal-backdrop" data-close-modal="true"></div>
   <div class="modal-content card grouped">
     <div class="row-between">
-      <h2 id="episode-modal-title">Add Episode</h2>
-      <button class="btn" type="button" data-close-modal="true">Close</button>
+      <h2 id="episode-modal-title">에피소드 추가</h2>
+      <button class="btn" type="button" data-close-modal="true">닫기</button>
     </div>
     <div class="inline-error" id="episode-form-error"></div>
-    <input class="input" id="ep-title" placeholder="Title" />
-    <input class="input" id="ep-period" placeholder="Period" />
-    <textarea class="input" rows="2" id="ep-context" placeholder="Context"></textarea>
-    <textarea class="input" rows="2" id="ep-role" placeholder="Role"></textarea>
-    <textarea class="input" rows="2" id="ep-goal" placeholder="Goal"></textarea>
-    <textarea class="input" rows="2" id="ep-problem" placeholder="Problem"></textarea>
-    <input class="input" id="ep-action1" placeholder="Action 1" />
-    <input class="input" id="ep-action2" placeholder="Action 2" />
-    <input class="input" id="ep-action3" placeholder="Action 3" />
-    <textarea class="input" rows="2" id="ep-results" placeholder="Results (quant + qual)"></textarea>
-    <textarea class="input" rows="2" id="ep-learning" placeholder="Learning"></textarea>
+    <input class="input" id="ep-title" placeholder="제목" />
+    <input class="input" id="ep-period" placeholder="기간" />
+    <textarea class="input" rows="2" id="ep-context" placeholder="상황"></textarea>
+    <textarea class="input" rows="2" id="ep-role" placeholder="역할"></textarea>
+    <textarea class="input" rows="2" id="ep-goal" placeholder="목표"></textarea>
+    <textarea class="input" rows="2" id="ep-problem" placeholder="문제"></textarea>
+    <input class="input" id="ep-action1" placeholder="행동 1" />
+    <input class="input" id="ep-action2" placeholder="행동 2" />
+    <input class="input" id="ep-action3" placeholder="행동 3" />
+    <textarea class="input" rows="2" id="ep-results" placeholder="결과(정량+정성)"></textarea>
+    <textarea class="input" rows="2" id="ep-learning" placeholder="배운 점"></textarea>
     <div class="grouped">
       <div class="row-between">
-        <strong>Link Evidence Chunks</strong>
-        <input class="input search" id="ep-chunk-search" placeholder="Search chunks" />
+        <strong>근거 청크 연결</strong>
+        <input class="input search" id="ep-chunk-search" placeholder="청크 검색" />
       </div>
       <div class="picker" id="ep-chunk-picker"></div>
     </div>
-    <button class="btn primary" id="episode-save-btn" type="button">Save Episode</button>
+    <button class="btn primary" id="episode-save-btn" type="button">에피소드 저장</button>
   </div>
 </div>
