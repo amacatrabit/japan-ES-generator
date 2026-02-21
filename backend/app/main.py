@@ -183,8 +183,12 @@ def _compress(text: str, level: int) -> str:
 
 
 def _export_strict(claims: list[Claim], char_limit: int, compression_level: int) -> ExportResponse:
-    allowed_claims = [claim for claim in claims if claim.export_allowed]
-    ranked = sorted(allowed_claims, key=lambda claim: (claim.assumption, claim.confidence))
+    normalized_claims = [
+        claim.model_copy(update={"export_allowed": len(claim.evidence) >= 1})
+        for claim in claims
+    ]
+    allowed_claims = [claim for claim in normalized_claims if claim.export_allowed]
+    ranked = sorted(allowed_claims, key=lambda claim: (claim.assumption, -claim.confidence))
 
     used: list[Claim] = []
     text = ""
@@ -195,7 +199,7 @@ def _export_strict(claims: list[Claim], char_limit: int, compression_level: int)
             used.append(claim)
 
     used_claim_ids = [claim.claim_id for claim in used]
-    dropped_claim_ids = [claim.claim_id for claim in claims if claim.claim_id not in used_claim_ids]
+    dropped_claim_ids = [claim.claim_id for claim in normalized_claims if claim.claim_id not in used_claim_ids]
 
     return ExportResponse(
         text=text,
