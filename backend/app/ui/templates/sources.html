@@ -1,35 +1,39 @@
-<section class="section card grouped">
-  <h2>소스 추가</h2>
-  <div class="inline-error" id="source-form-error"></div>
-  <input class="input" id="source-title" placeholder="제목 (필수)" />
-  <div class="row">
-    <label><input type="radio" name="source-type" value="note" checked /> 노트</label>
-    <label><input type="radio" name="source-type" value="text" /> 텍스트</label>
-  </div>
-  <textarea class="input" rows="6" id="source-content" placeholder="소스 내용을 입력하세요."></textarea>
-  <button class="btn primary" type="button" id="source-add-btn">소스 저장</button>
-</section>
+<div class="sources-layout">
+  <section class="section card grouped">
+    <h2 class="section-title">소스 추가</h2>
+    <div class="inline-error" id="source-form-error"></div>
+    <input class="input" id="source-title" placeholder="제목 (필수)" />
+    <div class="row">
+      <label><input type="radio" name="source-type" value="note" checked /> 노트</label>
+      <label><input type="radio" name="source-type" value="text" /> 텍스트</label>
+    </div>
+    <textarea class="input" rows="8" id="source-content" placeholder="소스 내용을 입력하세요."></textarea>
+    <button class="btn primary" type="button" id="source-add-btn">소스 저장</button>
+  </section>
 
-<section class="section card grouped">
-  <h2>소스 목록</h2>
-  <div id="source-list" class="list"></div>
-  <div class="empty-state" id="source-list-empty">소스가 없습니다.</div>
-</section>
+  <div class="sources-main">
+    <section class="section card grouped">
+      <h2 class="section-title">소스 목록</h2>
+      <div id="source-list" class="list"></div>
+      <div class="empty-state" id="source-list-empty">소스가 없습니다.</div>
+    </section>
 
-<section class="section card grouped">
-  <div class="row-between">
-    <h2 id="source-detail-title">소스 상세</h2>
-    <input class="input search" id="chunk-search" placeholder="청크 검색" />
+    <section class="section card grouped">
+      <div class="row-between">
+        <h2 class="section-title" id="source-detail-title">소스 상세</h2>
+        <input class="input search" id="chunk-search" placeholder="청크 검색" />
+      </div>
+      <div id="chunk-list" class="list"></div>
+      <div class="empty-state" id="chunk-list-empty">소스를 선택하면 청크가 표시됩니다.</div>
+    </section>
   </div>
-  <div id="chunk-list" class="list"></div>
-  <div class="empty-state" id="chunk-list-empty">소스를 선택하면 청크가 표시됩니다.</div>
-</section>
+</div>
 
 <div class="modal hidden" id="chunk-modal">
   <div class="modal-backdrop" data-close-chunk-modal="true"></div>
   <div class="modal-content card grouped">
     <div class="row-between">
-      <h2>청크 상세</h2>
+      <h2 class="section-title">청크 상세</h2>
       <button class="btn" data-close-chunk-modal="true" type="button">닫기</button>
     </div>
     <div id="chunk-modal-text" class="preview-box"></div>

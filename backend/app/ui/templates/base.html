@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,16 +7,19 @@
     <link rel="stylesheet" href="/ui/static/app.css" />
   </head>
   <body data-page="{{ page_key }}">
-    <div class="shell">
-      <header class="topnav card">
+    <div class="main">
+      <nav class="nav card" aria-label="주요 메뉴">
         <a class="nav-link" data-nav="sources" href="/sources">소스</a>
         <a class="nav-link" data-nav="profile" href="/profile">프로필</a>
         <a class="nav-link" data-nav="company" href="/company">기업</a>
         <a class="nav-link" data-nav="drafts" href="/drafts">초안</a>
+      </nav>
+
+      <header class="header">
+        <h1 class="large-title">{{ heading }}</h1>
       </header>
 
-      <main>
-        <h1 class="large-title">{{ heading }}</h1>
+      <main class="container">
         {{ content | safe }}
       </main>
     </div>
