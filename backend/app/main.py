@@ -181,6 +181,11 @@ def ui_js() -> str:
     return (STATIC_ROOT / "app.js").read_text(encoding="utf-8")
 
 
+@app.get("/ui/static/store.js")
+def ui_store_js() -> str:
+    return (STATIC_ROOT / "store.js").read_text(encoding="utf-8")
+
+
 @app.get("/healthz")
 def healthz() -> dict[str, bool]:
     return {"ok": True}

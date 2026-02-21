@@ -5,7 +5,6 @@
     if (link.getAttribute('data-nav') === PAGE) link.classList.add('active');
   });
 
-  var KEY = 'es-writer-ui-store-v1';
   var QUESTION_TYPES = ['gakuchika', 'self_pr', 'motivation', 'strengths_weaknesses', 'future_plan', 'job_hunting_axis'];
   var PURPOSE_TAGS = ['gakuchika', 'motivation', 'self_pr', 'future_plan', 'result'];
 
@@ -32,9 +31,7 @@
 
   function loadStore() {
     try {
-      var raw = localStorage.getItem(KEY);
-      if (!raw) return defaultStore();
-      var parsed = JSON.parse(raw);
+      var parsed = (window.esStore ? window.esStore.load(defaultStore()) : defaultStore());
       return Object.assign(defaultStore(), parsed, {
         profile: Object.assign(defaultStore().profile, parsed.profile || {}),
       });
@@ -44,7 +41,8 @@
   }
 
   function saveStore(state) {
-    localStorage.setItem(KEY, JSON.stringify(state));
+    if (window.esStore) { window.esStore.save(state); return; }
+    localStorage.setItem('es-writer-ui-store-v1', JSON.stringify(state));
   }
 
   function deriveChunks(sources) {

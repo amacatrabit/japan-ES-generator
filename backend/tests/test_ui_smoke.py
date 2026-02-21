@@ -26,7 +26,9 @@ def test_profile_company_drafts_pages_render() -> None:
 def test_ui_assets_served() -> None:
     css = client.get("/ui/static/app.css")
     js = client.get("/ui/static/app.js")
+    store = client.get("/ui/static/store.js")
     assert css.status_code == 200
     assert ".large-title" in css.text
     assert js.status_code == 200
-    assert "localStorage" in js.text
+    assert store.status_code == 200
+    assert "esStore" in store.text
