@@ -388,6 +388,22 @@ class CompanyResearchRequest(BaseModel):
     company_name: str
 
 
+class CompanyUpsertRequest(BaseModel):
+    company_name: str
+    role: str = ""
+    research_summary: str = ""
+    question_templates: list[str] = Field(default_factory=list)
+
+
+class DraftHistoryCreateRequest(BaseModel):
+    question_type: str
+    char_limit: int
+    company_id: str | None = None
+    draft_text: str
+    claims: list[dict] = Field(default_factory=list)
+    qa_findings: list[dict] = Field(default_factory=list)
+
+
 @app.get("/")
 def root() -> RedirectResponse:
     return RedirectResponse(url="/sources", status_code=302)
@@ -545,6 +561,114 @@ def restore_api(req: RestoreRequest) -> JSONResponse:
 
 
 
+
+
+
+@app.get("/v1/llm/health")
+def llm_health() -> JSONResponse:
+    configured = bool(os.getenv("OPENAI_API_KEY", "").strip())
+    return JSONResponse({"provider": "openai", "configured": configured})
+
+
+@app.get("/v1/companies")
+def list_companies_api() -> JSONResponse:
+    return JSONResponse(db.list_companies())
+
+
+@app.post("/v1/companies")
+def create_company_api(req: CompanyUpsertRequest) -> JSONResponse:
+    if not req.company_name.strip():
+        raise HTTPException(status_code=400, detail="company_name is required")
+    item = db.create_company(req.company_name.strip(), req.role.strip(), req.research_summary, req.question_templates)
+    return JSONResponse(item, status_code=201)
+
+
+@app.put("/v1/companies/{company_id}")
+def update_company_api(company_id: str, req: CompanyUpsertRequest) -> JSONResponse:
+    item = db.update_company(company_id, req.company_name.strip(), req.role.strip(), req.research_summary, req.question_templates)
+    if not item:
+        raise HTTPException(status_code=404, detail="company not found")
+    return JSONResponse(item)
+
+
+@app.delete("/v1/companies/{company_id}")
+def delete_company_api(company_id: str) -> JSONResponse:
+    ok = db.delete_company(company_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="company not found")
+    return JSONResponse({"ok": True})
+
+
+@app.post("/v1/companies/{company_id}/research/generate")
+async def generate_company_research(company_id: str) -> JSONResponse:
+    company = db.get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="company not found")
+
+    prompt = (
+        "아래 일본 기업 정보를 ES 작성용으로 요약하고 질문 템플릿 2개를 JSON으로 주세요. "
+        "형식: {\"research_summary\":\"...\",\"question_templates\":[\"...\",\"...\"]}. "
+        f"기업명: {company['company_name']}"
+    )
+    llm_result = await _call_openai_json(prompt)
+
+    if isinstance(llm_result, dict):
+        summary = str(llm_result.get("research_summary") or "").strip()
+        q_templates = llm_result.get("question_templates")
+        if isinstance(q_templates, list):
+            q_templates = [str(v) for v in q_templates if str(v).strip()]
+        else:
+            q_templates = []
+        if summary or q_templates:
+            updated = db.update_company(
+                company_id,
+                company["company_name"],
+                company.get("role", ""),
+                summary or company.get("research_summary", ""),
+                q_templates or company.get("question_templates", []),
+            )
+            return JSONResponse(updated)
+
+    fallback_summary = f"{company['company_name']}의 사업/인재상/직무역량을 정리하고 지원 동기와 연결하세요."
+    fallback_templates = [
+        "지원 동기 및 기여 가능성을 400자 내외로 작성하세요.",
+        "가장 중요한 도전 경험과 학습을 설명하세요.",
+    ]
+    updated = db.update_company(
+        company_id,
+        company["company_name"],
+        company.get("role", ""),
+        fallback_summary,
+        fallback_templates,
+    )
+    return JSONResponse(updated)
+
+
+@app.get("/v1/drafts/history")
+def list_drafts_history_api() -> JSONResponse:
+    return JSONResponse(db.list_draft_histories())
+
+
+@app.get("/v1/drafts/history/{history_id}")
+def get_draft_history_api(history_id: str) -> JSONResponse:
+    item = db.get_draft_history(history_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="history not found")
+    return JSONResponse(item)
+
+
+@app.post("/v1/drafts/history")
+def create_draft_history_api(req: DraftHistoryCreateRequest) -> JSONResponse:
+    item = db.create_draft_history(req.question_type, req.char_limit, req.company_id, req.draft_text, req.claims, req.qa_findings)
+    return JSONResponse(item, status_code=201)
+
+
+@app.delete("/v1/drafts/history/{history_id}")
+def delete_draft_history_api(history_id: str) -> JSONResponse:
+    ok = db.delete_draft_history(history_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="history not found")
+    return JSONResponse({"ok": True})
 
 @app.post("/v1/company/research")
 async def company_research(req: CompanyResearchRequest) -> JSONResponse:
