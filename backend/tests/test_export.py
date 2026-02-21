@@ -128,39 +128,30 @@ def test_export_ranks_high_confidence_and_drops_assumptions_first() -> None:
     assert "c_assume" in body["dropped_claim_ids"]
 
 
-def test_export_dropped_ids_are_based_on_normalized_claims() -> None:
+def test_export_uses_normalized_claims_for_dropped_ids() -> None:
     payload = {
         "claims": [
             {
-                "claim_id": "c_allowed",
-                "text": "근거가 있는 일반 주장",
-                "evidence": [{"chunk_id": "ch1", "quote": "q"}],
-                "confidence": 0.9,
-                "assumption": False,
-                "export_allowed": False,
-            },
-            {
-                "claim_id": "c_no_evidence",
-                "text": "근거 없음",
+                "claim_id": "c_blocked",
+                "text": "클라이언트가 허용했다고 보내도 근거가 없으면 차단",
                 "evidence": [],
                 "confidence": 0.99,
                 "assumption": False,
                 "export_allowed": True,
             },
             {
-                "claim_id": "c_overflow",
-                "text": "문자수 제한 때문에 탈락해야 하는 주장",
-                "evidence": [{"chunk_id": "ch2", "quote": "q"}],
-                "confidence": 0.7,
+                "claim_id": "c_ok",
+                "text": "근거가 있는 정상 주장",
+                "evidence": [{"chunk_id": "ch1", "quote": "q"}],
+                "confidence": 0.4,
                 "assumption": False,
-                "export_allowed": True,
+                "export_allowed": False,
             },
         ],
-        "char_limit": 20,
+        "char_limit": 100,
         "compression_level": 1,
     }
     res = client.post("/v1/export", json=payload)
     body = res.json()
-
-    assert body["used_claim_ids"] == ["c_allowed"]
-    assert body["dropped_claim_ids"] == ["c_no_evidence", "c_overflow"]
+    assert body["used_claim_ids"] == ["c_ok"]
+    assert body["dropped_claim_ids"] == ["c_blocked"]
