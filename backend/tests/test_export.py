@@ -126,3 +126,41 @@ def test_export_ranks_high_confidence_and_drops_assumptions_first() -> None:
     body = res.json()
     assert body["used_claim_ids"] == ["c_high"]
     assert "c_assume" in body["dropped_claim_ids"]
+
+
+def test_export_dropped_ids_are_based_on_normalized_claims() -> None:
+    payload = {
+        "claims": [
+            {
+                "claim_id": "c_allowed",
+                "text": "근거가 있는 일반 주장",
+                "evidence": [{"chunk_id": "ch1", "quote": "q"}],
+                "confidence": 0.9,
+                "assumption": False,
+                "export_allowed": False,
+            },
+            {
+                "claim_id": "c_no_evidence",
+                "text": "근거 없음",
+                "evidence": [],
+                "confidence": 0.99,
+                "assumption": False,
+                "export_allowed": True,
+            },
+            {
+                "claim_id": "c_overflow",
+                "text": "문자수 제한 때문에 탈락해야 하는 주장",
+                "evidence": [{"chunk_id": "ch2", "quote": "q"}],
+                "confidence": 0.7,
+                "assumption": False,
+                "export_allowed": True,
+            },
+        ],
+        "char_limit": 20,
+        "compression_level": 1,
+    }
+    res = client.post("/v1/export", json=payload)
+    body = res.json()
+
+    assert body["used_claim_ids"] == ["c_allowed"]
+    assert body["dropped_claim_ids"] == ["c_no_evidence", "c_overflow"]
